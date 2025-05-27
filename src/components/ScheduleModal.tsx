@@ -29,7 +29,8 @@ const ScheduleModal = ({ isOpen, onClose, onSave, schedule, selectedDate }: Sche
     startTime: '09:00',
     endTime: '10:00',
     category: 'other',
-    priority: 'medium'
+    priority: 'medium',
+    status: 'planned'
   });
 
   useEffect(() => {
@@ -41,7 +42,8 @@ const ScheduleModal = ({ isOpen, onClose, onSave, schedule, selectedDate }: Sche
         startTime: schedule.startTime,
         endTime: schedule.endTime,
         category: schedule.category,
-        priority: schedule.priority
+        priority: schedule.priority,
+        status: schedule.status
       });
     } else if (selectedDate) {
       setFormData(prev => ({ ...prev, date: selectedDate }));
@@ -62,7 +64,8 @@ const ScheduleModal = ({ isOpen, onClose, onSave, schedule, selectedDate }: Sche
       startTime: '09:00',
       endTime: '10:00',
       category: 'other',
-      priority: 'medium'
+      priority: 'medium',
+      status: 'planned'
     });
     onClose();
   };
@@ -149,7 +152,7 @@ const ScheduleModal = ({ isOpen, onClose, onSave, schedule, selectedDate }: Sche
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label>카테고리</Label>
               <Select
@@ -183,6 +186,23 @@ const ScheduleModal = ({ isOpen, onClose, onSave, schedule, selectedDate }: Sche
                   <SelectItem value="high">높음</SelectItem>
                   <SelectItem value="medium">보통</SelectItem>
                   <SelectItem value="low">낮음</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>상태</Label>
+              <Select
+                value={formData.status}
+                onValueChange={(value: any) => setFormData({ ...formData, status: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="planned">계획</SelectItem>
+                  <SelectItem value="in-progress">진행</SelectItem>
+                  <SelectItem value="completed">완료</SelectItem>
                 </SelectContent>
               </Select>
             </div>

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { useAuthStore } from '@/stores/useAuthStore';
@@ -96,22 +97,6 @@ const Index = () => {
     setSelectedSchedule(null);
     setSelectedDate(undefined);
     setIsModalOpen(true);
-  };
-
-  const handleToggleComplete = (id: string) => {
-    setSchedules(prev => prev.map(schedule => 
-      schedule.id === id 
-        ? { ...schedule, completed: !schedule.completed, updatedAt: new Date() }
-        : schedule
-    ));
-    
-    const schedule = schedules.find(s => s.id === id);
-    if (schedule) {
-      toast({
-        title: schedule.completed ? "일정이 미완료로 변경되었습니다" : "일정이 완료되었습니다",
-        description: `"${schedule.title}" 일정의 상태가 변경되었습니다.`,
-      });
-    }
   };
 
   const handleDeleteSchedule = (id: string) => {
