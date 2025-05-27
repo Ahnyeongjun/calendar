@@ -1,13 +1,12 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuthStore } from '@/stores/useAuthStore';
 import { User, Calendar, Clock } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const MyPage = () => {
-  const { user, logout } = useAuth();
+  const { user, logout } = useAuthStore();
 
   if (!user) {
     return null;

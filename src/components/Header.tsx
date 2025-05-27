@@ -1,8 +1,7 @@
-
 import { Calendar, Table, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ViewMode } from '@/types/schedule';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuthStore } from '@/stores/useAuthStore';
 import { Link } from 'react-router-dom';
 
 interface HeaderProps {
@@ -12,7 +11,7 @@ interface HeaderProps {
 }
 
 const Header = ({ currentView, onViewChange, onAddSchedule }: HeaderProps) => {
-  const { user } = useAuth();
+  const user = useAuthStore((state) => state.user);
 
   return (
     <header className="bg-white border-b border-gray-200 px-6 py-4">

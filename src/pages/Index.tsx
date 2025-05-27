@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { toast } from '@/hooks/use-toast';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuthStore } from '@/stores/useAuthStore';
 import Header from '@/components/Header';
 import CalendarView from '@/components/CalendarView';
 import TableView from '@/components/TableView';
@@ -9,7 +9,7 @@ import LoginForm from '@/components/LoginForm';
 import { Schedule, ViewMode, ScheduleFormData } from '@/types/schedule';
 
 const Index = () => {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user } = useAuthStore();
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [currentView, setCurrentView] = useState<ViewMode>('calendar');
   const [isModalOpen, setIsModalOpen] = useState(false);
