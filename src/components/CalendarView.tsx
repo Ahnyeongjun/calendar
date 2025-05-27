@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths } from 'date-fns';
 import { ko } from 'date-fns/locale';
@@ -32,6 +31,17 @@ const CalendarView = ({ schedules, onScheduleClick, onDateClick }: CalendarViewP
       other: 'bg-gray-100 text-gray-800 border-gray-200'
     };
     return colors[category as keyof typeof colors] || colors.other;
+  };
+
+  const getStatusOpacity = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return 'opacity-60';
+      case 'in-progress':
+        return 'opacity-90';
+      default:
+        return 'opacity-100';
+    }
   };
 
   return (
@@ -113,7 +123,7 @@ const CalendarView = ({ schedules, onScheduleClick, onDateClick }: CalendarViewP
                     {daySchedules.slice(0, 2).map((schedule) => (
                       <div
                         key={schedule.id}
-                        className={`text-xs p-1 rounded border cursor-pointer hover:shadow-sm transition-shadow ${getCategoryColor(schedule.category)}`}
+                        className={`text-xs p-1 rounded border cursor-pointer hover:shadow-sm transition-shadow ${getCategoryColor(schedule.category)} ${getStatusOpacity(schedule.status)}`}
                         onClick={(e) => {
                           e.stopPropagation();
                           onScheduleClick(schedule);

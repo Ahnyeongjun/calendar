@@ -8,7 +8,7 @@ export interface Schedule {
   endTime: string;
   category: 'work' | 'personal' | 'meeting' | 'other';
   priority: 'low' | 'medium' | 'high';
-  completed: boolean;
+  status: 'planned' | 'in-progress' | 'completed';
   createdAt: Date;
   updatedAt: Date;
 }
@@ -23,4 +23,5 @@ export interface ScheduleFormData {
   endTime: string;
   category: 'work' | 'personal' | 'meeting' | 'other';
   priority: 'low' | 'medium' | 'high';
+  status: 'planned' | 'in-progress' | 'completed';
 }

@@ -68,7 +68,6 @@ const Index = () => {
       const newSchedule: Schedule = {
         id: Date.now().toString(),
         ...data,
-        completed: false,
         createdAt: new Date(),
         updatedAt: new Date()
       };
@@ -127,6 +126,23 @@ const Index = () => {
     }
   };
 
+  const handleStatusChange = (id: string, status: 'planned' | 'in-progress' | 'completed') => {
+    setSchedules(prev => prev.map(schedule => 
+      schedule.id === id 
+        ? { ...schedule, status, updatedAt: new Date() }
+        : schedule
+    ));
+    
+    const schedule = schedules.find(s => s.id === id);
+    if (schedule) {
+      const statusText = status === 'planned' ? '계획' : status === 'in-progress' ? '진행' : '완료';
+      toast({
+        title: "일정 상태가 변경되었습니다",
+        description: `"${schedule.title}" 일정이 ${statusText} 상태로 변경되었습니다.`,
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       <Header
@@ -146,7 +162,7 @@ const Index = () => {
           <TableView
             schedules={schedules}
             onScheduleClick={handleScheduleClick}
-            onToggleComplete={handleToggleComplete}
+            onStatusChange={handleStatusChange}
             onDeleteSchedule={handleDeleteSchedule}
           />
         )}
