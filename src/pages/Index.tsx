@@ -1,37 +1,55 @@
-
 import { useState, useEffect } from 'react';
 import { toast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 import Header from '@/components/Header';
 import CalendarView from '@/components/CalendarView';
 import TableView from '@/components/TableView';
 import ScheduleModal from '@/components/ScheduleModal';
+import LoginForm from '@/components/LoginForm';
 import { Schedule, ViewMode, ScheduleFormData } from '@/types/schedule';
 
 const Index = () => {
+  const { isAuthenticated, user } = useAuth();
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [currentView, setCurrentView] = useState<ViewMode>('calendar');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedSchedule, setSelectedSchedule] = useState<Schedule | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
 
-  // 로컬 스토리지에서 일정 데이터 로드
-  useEffect(() => {
-    const savedSchedules = localStorage.getItem('schedules');
-    if (savedSchedules) {
-      const parsedSchedules = JSON.parse(savedSchedules).map((schedule: any) => ({
-        ...schedule,
-        date: new Date(schedule.date),
-        createdAt: new Date(schedule.createdAt),
-        updatedAt: new Date(schedule.updatedAt)
-      }));
-      setSchedules(parsedSchedules);
-    }
-  }, []);
+  // 사용자별 로컬 스토리지 키 생성
+  const getStorageKey = () => user ? `schedules_${user.id}` : 'schedules';
 
-  // 일정 데이터 로컬 스토리지에 저장
+  // 로컬 스토리지에서 사용자별 일정 데이터 로드
   useEffect(() => {
-    localStorage.setItem('schedules', JSON.stringify(schedules));
-  }, [schedules]);
+    if (user) {
+      const storageKey = getStorageKey();
+      const savedSchedules = localStorage.getItem(storageKey);
+      if (savedSchedules) {
+        const parsedSchedules = JSON.parse(savedSchedules).map((schedule: any) => ({
+          ...schedule,
+          date: new Date(schedule.date),
+          createdAt: new Date(schedule.createdAt),
+          updatedAt: new Date(schedule.updatedAt)
+        }));
+        setSchedules(parsedSchedules);
+      } else {
+        setSchedules([]);
+      }
+    }
+  }, [user]);
+
+  // 사용자별 일정 데이터 로컬 스토리지에 저장
+  useEffect(() => {
+    if (user) {
+      const storageKey = getStorageKey();
+      localStorage.setItem(storageKey, JSON.stringify(schedules));
+    }
+  }, [schedules, user]);
+
+  // 로그인하지 않은 경우 로그인 폼 표시
+  if (!isAuthenticated) {
+    return <LoginForm />;
+  }
 
   const handleSaveSchedule = (data: ScheduleFormData, scheduleId?: string) => {
     if (scheduleId) {
