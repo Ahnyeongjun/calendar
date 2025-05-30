@@ -4,29 +4,24 @@ import { Calendar, Clock, Flag, Edit, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Schedule } from '@/types/schedule';
+import { useProject } from '@/hooks/useProject';
 
 interface ScheduleTableRowProps {
   schedule: Schedule;
   onScheduleClick: (schedule: Schedule) => void;
   onStatusChange: (id: string, status: 'planned' | 'in-progress' | 'completed') => void;
   onDeleteSchedule: (id: string) => void;
+  hideProject?: boolean; // 프로젝트 그룹핑 시 프로젝트 컬럼 숨김
 }
 
 export const ScheduleTableRow = ({
   schedule,
   onScheduleClick,
   onStatusChange,
-  onDeleteSchedule
+  onDeleteSchedule,
+  hideProject = false
 }: ScheduleTableRowProps) => {
-  const getCategoryColor = (category: string) => {
-    const colors = {
-      work: 'bg-blue-100 text-blue-800',
-      personal: 'bg-green-100 text-green-800',
-      meeting: 'bg-purple-100 text-purple-800',
-      other: 'bg-gray-100 text-gray-800'
-    };
-    return colors[category as keyof typeof colors] || colors.other;
-  };
+  const { getProjectName, getProjectBadgeStyle, getProjectColor } = useProject();
 
   const getPriorityColor = (priority: string) => {
     const colors = {
@@ -52,9 +47,10 @@ export const ScheduleTableRow = ({
 
   return (
     <tr
-      className={`hover:bg-gray-50 transition-colors cursor-pointer ${
+      className={`hover:bg-gray-50 transition-colors cursor-pointer border-l-4 ${
         schedule.status === 'completed' ? 'opacity-60' : ''
       }`}
+      style={{ borderLeftColor: getProjectColor(schedule.projectId) }}
     >
       <td className="px-6 py-4 whitespace-nowrap">
         <select
@@ -93,13 +89,22 @@ export const ScheduleTableRow = ({
           <span>{schedule.startTime} - {schedule.endTime}</span>
         </div>
       </td>
-      <td className="px-6 py-4 whitespace-nowrap">
-        <Badge className={getCategoryColor(schedule.category)}>
-          {schedule.category === 'work' ? '업무' : 
-           schedule.category === 'personal' ? '개인' :
-           schedule.category === 'meeting' ? '회의' : '기타'}
-        </Badge>
-      </td>
+      {!hideProject && (
+        <td className="px-6 py-4 whitespace-nowrap">
+          {schedule.projectId ? (
+            <Badge 
+              variant="secondary" 
+              style={getProjectBadgeStyle(schedule.projectId)}
+            >
+              {getProjectName(schedule.projectId)}
+            </Badge>
+          ) : (
+            <Badge variant="outline" className="text-gray-500">
+              프로젝트 없음
+            </Badge>
+          )}
+        </td>
+      )}
       <td className="px-6 py-4 whitespace-nowrap">
         <Badge className={getPriorityColor(schedule.priority)}>
           <Flag size={12} className="mr-1" />

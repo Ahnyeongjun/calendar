@@ -14,9 +14,46 @@ const MainPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedSchedule, setSelectedSchedule] = useState<Schedule | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
+  const [projectFilter, setProjectFilter] = useState<string | undefined>();
 
   // 사용자별 로컬 스토리지 키 생성
   const getStorageKey = () => user ? `schedules_${user.id}` : 'schedules';
+
+  // 기존 category를 projectId로 마이그레이션하는 함수
+  const migrateScheduleData = (schedule: any): Schedule => {
+    // 기존 category를 projectId로 변환
+    let projectId: string | undefined;
+    if (schedule.category) {
+      switch (schedule.category) {
+        case 'work':
+          projectId = 'work';
+          break;
+        case 'personal':
+          projectId = 'personal';
+          break;
+        case 'meeting':
+          // meeting은 업무로 분류
+          projectId = 'work';
+          break;
+        default:
+          projectId = undefined;
+      }
+    }
+
+    return {
+      id: schedule.id,
+      title: schedule.title,
+      description: schedule.description || '',
+      date: new Date(schedule.date),
+      startTime: schedule.startTime || '09:00',
+      endTime: schedule.endTime || '10:00',
+      status: schedule.status || 'planned',
+      priority: schedule.priority || 'medium',
+      projectId: schedule.projectId || projectId, // 새 필드가 있으면 우선, 없으면 마이그레이션
+      createdAt: new Date(schedule.createdAt),
+      updatedAt: new Date(schedule.updatedAt)
+    };
+  };
 
   // 로컬 스토리지에서 사용자별 일정 데이터 로드
   useEffect(() => {
@@ -24,12 +61,7 @@ const MainPage = () => {
       const storageKey = getStorageKey();
       const savedSchedules = localStorage.getItem(storageKey);
       if (savedSchedules) {
-        const parsedSchedules = JSON.parse(savedSchedules).map((schedule: any) => ({
-          ...schedule,
-          date: new Date(schedule.date),
-          createdAt: new Date(schedule.createdAt),
-          updatedAt: new Date(schedule.updatedAt)
-        }));
+        const parsedSchedules = JSON.parse(savedSchedules).map(migrateScheduleData);
         setSchedules(parsedSchedules);
       } else {
         setSchedules([]);
@@ -39,11 +71,18 @@ const MainPage = () => {
 
   // 사용자별 일정 데이터 로컬 스토리지에 저장
   useEffect(() => {
-    if (user) {
+    if (user && schedules.length > 0) {
       const storageKey = getStorageKey();
       localStorage.setItem(storageKey, JSON.stringify(schedules));
     }
   }, [schedules, user]);
+
+  // 프로젝트 필터링된 일정들
+  const filteredSchedules = schedules.filter(schedule => {
+    if (!projectFilter) return true;
+    if (projectFilter === 'none') return !schedule.projectId;
+    return schedule.projectId === projectFilter;
+  });
 
   const handleSaveSchedule = (data: ScheduleFormData, scheduleId?: string) => {
     if (scheduleId) {
@@ -132,13 +171,15 @@ const MainPage = () => {
       <main className="flex-1">
         {currentView === 'calendar' ? (
           <CalendarView
-            schedules={schedules}
+            schedules={filteredSchedules}
             onScheduleClick={handleScheduleClick}
             onDateClick={handleDateClick}
+            selectedProjectId={projectFilter}
+            onProjectFilterChange={setProjectFilter}
           />
         ) : (
           <TableView
-            schedules={schedules}
+            schedules={filteredSchedules}
             onScheduleClick={handleScheduleClick}
             onStatusChange={handleStatusChange}
             onDeleteSchedule={handleDeleteSchedule}

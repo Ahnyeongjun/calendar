@@ -28,13 +28,17 @@ interface CalendarViewProps {
   schedules: Schedule[];
   onScheduleClick: (schedule: Schedule) => void;
   onDateClick: (date: Date) => void;
+  selectedProjectId?: string;
+  onProjectFilterChange?: (projectId?: string) => void;
 }
 
 // Main Calendar View Component
 const CalendarView = ({
   schedules = mockSchedules,
   onScheduleClick = () => { },
-  onDateClick = () => { }
+  onDateClick = () => { },
+  selectedProjectId,
+  onProjectFilterChange
 }: CalendarViewProps) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [popupDate, setPopupDate] = useState<Date | null>(null);
@@ -73,6 +77,8 @@ const CalendarView = ({
           onPrevMonth={handlePrevMonth}
           onNextMonth={handleNextMonth}
           onToday={handleToday}
+          selectedProjectId={selectedProjectId}
+          onProjectFilterChange={onProjectFilterChange}
         />
 
         <Card className="overflow-hidden shadow-sm">

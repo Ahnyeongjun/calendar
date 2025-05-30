@@ -9,6 +9,7 @@ import { Schedule, ScheduleFormData } from '@/types/schedule';
 import { DatePicker } from './DatePicker';
 import { TimeRangePicker } from './TimeRangePicker';
 import { ScheduleOptions } from './ScheduleOptions';
+import { ProjectSelector } from './ProjectSelector';
 
 interface ScheduleModalProps {
   isOpen: boolean;
@@ -25,7 +26,7 @@ const ScheduleModal = ({ isOpen, onClose, onSave, schedule, selectedDate }: Sche
     date: selectedDate || new Date(),
     startTime: '09:00',
     endTime: '10:00',
-    category: 'other',
+    projectId: undefined,
     priority: 'medium',
     status: 'planned'
   });
@@ -38,7 +39,7 @@ const ScheduleModal = ({ isOpen, onClose, onSave, schedule, selectedDate }: Sche
         date: schedule.date,
         startTime: schedule.startTime,
         endTime: schedule.endTime,
-        category: schedule.category,
+        projectId: schedule.projectId,
         priority: schedule.priority,
         status: schedule.status
       });
@@ -60,7 +61,7 @@ const ScheduleModal = ({ isOpen, onClose, onSave, schedule, selectedDate }: Sche
       date: selectedDate || new Date(),
       startTime: '09:00',
       endTime: '10:00',
-      category: 'other',
+      projectId: undefined,
       priority: 'medium',
       status: 'planned'
     });
@@ -125,11 +126,18 @@ const ScheduleModal = ({ isOpen, onClose, onSave, schedule, selectedDate }: Sche
             </div>
           </div>
 
+          {/* 프로젝트 선택 */}
+          <div className="space-y-2">
+            <Label>프로젝트</Label>
+            <ProjectSelector
+              selectedProjectId={formData.projectId}
+              onProjectChange={(projectId) => updateFormData({ projectId })}
+            />
+          </div>
+
           <ScheduleOptions
-            category={formData.category}
             priority={formData.priority}
             status={formData.status}
-            onCategoryChange={(category) => updateFormData({ category: category as any })}
             onPriorityChange={(priority) => updateFormData({ priority: priority as any })}
             onStatusChange={(status) => updateFormData({ status: status as any })}
           />

@@ -32,7 +32,7 @@ export const CalendarDayCell = ({
       <div className="flex items-center justify-between mb-2">
         <span
           className={`text-sm font-medium ${isToday ? 'bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center' : ''
-            } ${dayIndex === 0 ? 'text-red-600' : dayIndex === 6 ? 'text-blue-600' : ''} ${!isCurrentMonth ? 'text-gray-400' : ''
+            }  ${!isCurrentMonth ? 'text-gray-400' : `${dayIndex === 0 ? 'text-red-600' : dayIndex === 6 ? 'text-blue-600' : ''}`
             }`}
         >
           {day.getDate()}

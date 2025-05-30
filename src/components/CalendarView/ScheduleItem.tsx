@@ -1,5 +1,6 @@
 import { Schedule } from '@/types/schedule';
-import { getCategoryColor, getStatusOpacity, getPriorityIndicator } from '@/util/styleUtils';
+import { useProject } from '@/hooks/useProject';
+import { Badge } from '@/components/ui/badge';
 
 interface ScheduleItemProps {
   schedule: Schedule;
@@ -10,17 +11,37 @@ export const ScheduleItem = ({
   schedule,
   onScheduleClick
 }: ScheduleItemProps) => {
+  const { getProjectColor, getProjectName } = useProject();
+  const projectColor = getProjectColor(schedule.projectId);
+
   return (
     <div
-      className={`text-xs p-1 rounded border cursor-pointer hover:shadow-sm transition-shadow ${getCategoryColor(schedule.category)} ${getStatusOpacity(schedule.status)} ${getPriorityIndicator(schedule.priority)}`}
+      className="text-xs p-2 rounded border cursor-pointer hover:shadow-sm transition-all hover:scale-105 bg-white border-l-4"
+      style={{ 
+        borderLeftColor: projectColor,
+        backgroundColor: projectColor + '08'
+      }}
       onClick={(e) => {
         e.stopPropagation();
         onScheduleClick(schedule);
       }}
     >
-      <div className="font-medium truncate">{schedule.title}</div>
-      <div className="text-xs opacity-75">
-        {schedule.startTime} - {schedule.endTime}
+      <div className="flex items-center justify-between mb-1">
+        <div className="font-medium truncate flex-1">{schedule.title}</div>
+        {schedule.priority === 'high' && (
+          <div className="w-2 h-2 bg-red-500 rounded-full ml-1 flex-shrink-0" />
+        )}
+      </div>
+      
+      <div className="flex items-center justify-between text-xs opacity-75">
+        <span>{schedule.startTime} - {schedule.endTime}</span>
+        {schedule.projectId && (
+          <div 
+            className="w-2 h-2 rounded-full flex-shrink-0" 
+            style={{ backgroundColor: projectColor }}
+            title={getProjectName(schedule.projectId)}
+          />
+        )}
       </div>
     </div>
   );

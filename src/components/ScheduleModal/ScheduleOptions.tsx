@@ -1,42 +1,22 @@
-import { Tag, Flag } from 'lucide-react';
+import { Flag } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface ScheduleOptionsProps {
-  category: string;
   priority: string;
   status: string;
-  onCategoryChange: (value: string) => void;
   onPriorityChange: (value: string) => void;
   onStatusChange: (value: string) => void;
 }
 
 export const ScheduleOptions = ({
-  category,
   priority,
   status,
-  onCategoryChange,
   onPriorityChange,
   onStatusChange
 }: ScheduleOptionsProps) => {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <div className="space-y-2">
-        <Label>카테고리</Label>
-        <Select value={category} onValueChange={onCategoryChange}>
-          <SelectTrigger>
-            <Tag className="mr-2 h-4 w-4" />
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="work">업무</SelectItem>
-            <SelectItem value="personal">개인</SelectItem>
-            <SelectItem value="meeting">회의</SelectItem>
-            <SelectItem value="other">기타</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div className="space-y-2">
         <Label>우선순위</Label>
         <Select value={priority} onValueChange={onPriorityChange}>
