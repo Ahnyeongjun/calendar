@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { toast } from '@/hooks/use-toast';
+import { LoginFormFields } from './LoginFormFields';
+import { TestAccountInfo } from './TestAccountInfo';
 
 const LoginForm = () => {
   const [username, setUsername] = useState('');
@@ -38,38 +37,14 @@ const LoginForm = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="username">아이디</Label>
-              <Input
-                id="username"
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="admin 또는 admin2"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">비밀번호</Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="1234"
-                required
-              />
-            </div>
-            <Button type="submit" className="w-full">
-              로그인
-            </Button>
-          </form>
-          <div className="mt-4 p-3 bg-gray-50 rounded-md">
-            <p className="text-sm text-gray-600 text-center">
-              테스트 계정: admin/1234 또는 admin2/1234
-            </p>
-          </div>
+          <LoginFormFields
+            username={username}
+            password={password}
+            onUsernameChange={setUsername}
+            onPasswordChange={setPassword}
+            onSubmit={handleSubmit}
+          />
+          <TestAccountInfo />
         </CardContent>
       </Card>
     </div>

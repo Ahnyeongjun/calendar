@@ -2,11 +2,25 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuthStore } from '@/stores/useAuthStore';
-import { User, Calendar, Clock } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { User, Clock, ArrowLeft } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { toast } from '@/hooks/use-toast';
 
 const MyPage = () => {
   const { user, logout } = useAuthStore();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    toast({
+      title: "로그아웃",
+      description: "성공적으로 로그아웃되었습니다.",
+    });
+    logout(); // Store에서 자동으로 navigate 처리
+  };
+
+  const handleBackToMain = () => {
+    navigate('/');
+  };
 
   if (!user) {
     return null;
@@ -20,12 +34,10 @@ const MyPage = () => {
             <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
               마이페이지
             </h1>
-            <Link to="/">
-              <Button variant="outline">
-                <Calendar className="mr-2 h-4 w-4" />
-                일정 관리로 돌아가기
-              </Button>
-            </Link>
+            <Button variant="outline" onClick={handleBackToMain}>
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              일정 관리로 돌아가기
+            </Button>
           </div>
 
           <div className="space-y-6">
@@ -69,7 +81,7 @@ const MyPage = () => {
               </CardHeader>
               <CardContent>
                 <Button 
-                  onClick={logout}
+                  onClick={handleLogout}
                   variant="destructive"
                   className="w-full"
                 >

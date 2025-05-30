@@ -1,16 +1,14 @@
-
 import { useState, useEffect } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { useAuthStore } from '@/stores/useAuthStore';
-import Header from '@/components/Header';
-import CalendarView from '@/components/CalendarView';
-import TableView from '@/components/TableView';
-import ScheduleModal from '@/components/ScheduleModal';
-import LoginForm from '@/components/LoginForm';
+import Header from '@/components/Header/Header';
+import CalendarView from '@/components/CalendarView/CalendarView';
+import TableView from '@/components/TableView/TableView';
+import ScheduleModal from '@/components/ScheduleModal/ScheduleModal';
 import { Schedule, ViewMode, ScheduleFormData } from '@/types/schedule';
 
-const Index = () => {
-  const { isAuthenticated, user } = useAuthStore();
+const MainPage = () => {
+  const { user } = useAuthStore();
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [currentView, setCurrentView] = useState<ViewMode>('calendar');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -47,16 +45,11 @@ const Index = () => {
     }
   }, [schedules, user]);
 
-  // 로그인하지 않은 경우 로그인 폼 표시
-  if (!isAuthenticated) {
-    return <LoginForm />;
-  }
-
   const handleSaveSchedule = (data: ScheduleFormData, scheduleId?: string) => {
     if (scheduleId) {
       // 기존 일정 수정
-      setSchedules(prev => prev.map(schedule => 
-        schedule.id === scheduleId 
+      setSchedules(prev => prev.map(schedule =>
+        schedule.id === scheduleId
           ? { ...schedule, ...data, updatedAt: new Date() }
           : schedule
       ));
@@ -102,7 +95,7 @@ const Index = () => {
   const handleDeleteSchedule = (id: string) => {
     const schedule = schedules.find(s => s.id === id);
     setSchedules(prev => prev.filter(schedule => schedule.id !== id));
-    
+
     if (schedule) {
       toast({
         title: "일정이 삭제되었습니다",
@@ -112,12 +105,12 @@ const Index = () => {
   };
 
   const handleStatusChange = (id: string, status: 'planned' | 'in-progress' | 'completed') => {
-    setSchedules(prev => prev.map(schedule => 
-      schedule.id === id 
+    setSchedules(prev => prev.map(schedule =>
+      schedule.id === id
         ? { ...schedule, status, updatedAt: new Date() }
         : schedule
     ));
-    
+
     const schedule = schedules.find(s => s.id === id);
     if (schedule) {
       const statusText = status === 'planned' ? '계획' : status === 'in-progress' ? '진행' : '완료';
@@ -168,4 +161,4 @@ const Index = () => {
   );
 };
 
-export default Index;
+export default MainPage;
