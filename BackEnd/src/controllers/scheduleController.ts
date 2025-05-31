@@ -1,22 +1,37 @@
 import { Request, Response } from 'express';
 import ScheduleModel from '../models/Schedule';
+import { Status, Priority } from '@prisma/client';
+
+// 추가: 사용자 인증 정보를 요청에서 가져오는 인터페이스
+interface AuthenticatedRequest extends Request {
+  user?: {
+    id: string;
+    username: string;
+    name: string;
+  };
+}
 
 const scheduleController = {
   // 모든 일정 조회 (필터링 가능)
-  async getAllSchedules(req: Request, res: Response): Promise<void> {
+  async getAllSchedules(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const { date, startDate, endDate, status, priority, projectId } = req.query;
       
       const filters: any = {};
       
-      // 필터링 조건 추가
-      if (date) filters.date = date as string;
-      if (startDate && endDate) {
-        filters.startDate = startDate as string;
-        filters.endDate = endDate as string;
+      // 사용자 ID 추가 (인증된 사용자의 일정만 조회)
+      if (req.user) {
+        filters.userId = req.user.id;
       }
-      if (status) filters.status = status as 'planned' | 'in-progress' | 'completed';
-      if (priority) filters.priority = priority as 'low' | 'medium' | 'high';
+      
+      // 필터링 조건 추가
+      if (date) filters.date = new Date(date as string);
+      if (startDate && endDate) {
+        filters.startDate = new Date(startDate as string);
+        filters.endDate = new Date(endDate as string);
+      }
+      if (status) filters.status = status as Status;
+      if (priority) filters.priority = priority as Priority;
       if (projectId) filters.projectId = projectId as string;
       
       const schedules = await ScheduleModel.findAll(filters);
@@ -46,7 +61,7 @@ const scheduleController = {
   },
   
   // 일정 생성
-  async createSchedule(req: Request, res: Response): Promise<void> {
+  async createSchedule(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const { title, description, date, start_time, end_time, status, priority, project_id } = req.body;
       
@@ -55,15 +70,17 @@ const scheduleController = {
         return;
       }
       
+      // camelCase로 변환하고 userId 필드 추가
       const scheduleData = {
         title,
         description,
         date: new Date(date),
-        start_time,
-        end_time,
-        status,
-        priority,
-        project_id
+        startTime: start_time ? new Date(date + 'T' + start_time) : null, // 시간 포맷 변환
+        endTime: end_time ? new Date(date + 'T' + end_time) : null,       // 시간 포맷 변환
+        status: status as Status,
+        priority: priority as Priority,
+        projectId: project_id || null,
+        userId: req.user?.id || '1' // 인증된 사용자 ID 또는 기본값
       };
       
       const newSchedule = await ScheduleModel.create(scheduleData);
@@ -86,15 +103,16 @@ const scheduleController = {
         return;
       }
       
+      // camelCase로 변환
       const scheduleData = {
         title,
         description,
         date: new Date(date),
-        start_time,
-        end_time,
-        status,
-        priority,
-        project_id
+        startTime: start_time ? new Date(date + 'T' + start_time) : null,
+        endTime: end_time ? new Date(date + 'T' + end_time) : null,
+        status: status as Status,
+        priority: priority as Priority,
+        projectId: project_id || null
       };
       
       const updatedSchedule = await ScheduleModel.update(id, scheduleData);

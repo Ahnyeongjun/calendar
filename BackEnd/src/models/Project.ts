@@ -1,114 +1,76 @@
-import { pool } from '../config/db';
-import { Project } from '../types';
+import { prisma } from '../config/prisma';
+import { Project } from '@prisma/client';
 
 class ProjectModel {
   static async findAll(): Promise<Project[]> {
-    let conn;
     try {
-      conn = await pool.getConnection();
-      const projects = await conn.query('SELECT * FROM projects ORDER BY name');
-      return projects as Project[];
+      return await prisma.project.findMany({
+        orderBy: { name: 'asc' }
+      });
     } catch (error) {
       console.error('Project.findAll error:', error);
       throw error;
-    } finally {
-      if (conn) conn.release();
     }
   }
   
   static async findById(id: string): Promise<Project | null> {
-    let conn;
     try {
-      conn = await pool.getConnection();
-      const projects = await conn.query('SELECT * FROM projects WHERE id = ?', [id]);
-      
-      if (projects.length === 0) {
-        return null;
-      }
-      
-      return projects[0] as Project;
+      return await prisma.project.findUnique({
+        where: { id }
+      });
     } catch (error) {
       console.error('Project.findById error:', error);
       throw error;
-    } finally {
-      if (conn) conn.release();
     }
   }
   
-  static async create(projectData: Omit<Project, 'id' | 'created_at' | 'updated_at'>): Promise<Project> {
-    let conn;
+  static async create(projectData: Omit<Project, 'id' | 'createdAt' | 'updatedAt'>): Promise<Project> {
     try {
-      conn = await pool.getConnection();
-      
-      // ID 생성
-      const id = Date.now().toString();
-      
-      await conn.query(
-        'INSERT INTO projects (id, name, description, color) VALUES (?, ?, ?, ?)',
-        [id, projectData.name, projectData.description || null, projectData.color]
-      );
-      
-      return {
-        id,
-        ...projectData
-      };
+      return await prisma.project.create({
+        data: projectData
+      });
     } catch (error) {
       console.error('Project.create error:', error);
       throw error;
-    } finally {
-      if (conn) conn.release();
     }
   }
   
-  static async update(id: string, projectData: Omit<Project, 'id' | 'created_at' | 'updated_at'>): Promise<Project | null> {
-    let conn;
+  static async update(id: string, projectData: Omit<Project, 'id' | 'createdAt' | 'updatedAt'>): Promise<Project | null> {
     try {
-      conn = await pool.getConnection();
-      
       // 프로젝트 존재 확인
       const existingProject = await this.findById(id);
       if (!existingProject) {
         return null;
       }
       
-      // 업데이트 쿼리 실행
-      await conn.query(
-        'UPDATE projects SET name = ?, description = ?, color = ? WHERE id = ?',
-        [projectData.name, projectData.description || null, projectData.color, id]
-      );
-      
-      return {
-        id,
-        ...projectData
-      };
+      // 업데이트 실행
+      return await prisma.project.update({
+        where: { id },
+        data: projectData
+      });
     } catch (error) {
       console.error('Project.update error:', error);
       throw error;
-    } finally {
-      if (conn) conn.release();
     }
   }
   
   static async delete(id: string): Promise<boolean> {
-    let conn;
     try {
-      conn = await pool.getConnection();
-      
       // 프로젝트 존재 확인
       const existingProject = await this.findById(id);
       if (!existingProject) {
         return false;
       }
       
-      // 삭제 쿼리 실행
-      await conn.query('DELETE FROM projects WHERE id = ?', [id]);
+      // 삭제 실행
+      await prisma.project.delete({
+        where: { id }
+      });
       
       return true;
     } catch (error) {
       console.error('Project.delete error:', error);
       throw error;
-    } finally {
-      if (conn) conn.release();
     }
   }
 }

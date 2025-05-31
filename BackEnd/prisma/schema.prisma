@@ -1,0 +1,66 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String     @id @default(uuid())
+  username  String     @unique
+  password  String
+  name      String
+  schedules Schedule[]
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
+
+  @@map("users")
+}
+
+model Project {
+  id          String     @id @default(uuid())
+  name        String
+  description String?    @db.Text
+  color       String     @db.VarChar(7)
+  schedules   Schedule[]
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+
+  @@map("projects")
+}
+
+model Schedule {
+  id          String    @id @default(uuid())
+  title       String
+  description String?   @db.Text
+  date        DateTime  @db.Date
+  startTime   DateTime? @map("start_time") @db.Time
+  endTime     DateTime? @map("end_time") @db.Time
+  status      Status
+  priority    Priority
+  project     Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  projectId   String?   @map("project_id")
+  user        User      @relation(fields: [userId], references: [id])
+  userId      String    @map("user_id")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  @@map("schedules")
+}
+
+enum Status {
+  planned
+  in_progress @map("in-progress")
+  completed
+}
+
+enum Priority {
+  low
+  medium
+  high
+}

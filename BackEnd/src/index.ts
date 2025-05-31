@@ -2,7 +2,7 @@ import express, { Express } from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
-import { testConnection, initDatabase } from './config/db';
+import { testConnection, seedDatabase } from './config/prisma';
 
 // 라우트 가져오기
 import authRoutes from './routes/authRoutes';
@@ -41,8 +41,8 @@ const startServer = async () => {
       process.exit(1);
     }
     
-    // 데이터베이스 초기화
-    await initDatabase();
+    // 초기 데이터 설정
+    await seedDatabase();
     
     // 서버 시작
     app.listen(port, () => {
