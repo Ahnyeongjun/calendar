@@ -102,7 +102,7 @@ export const TableHeader = ({
           >
             <option value="all">전체 상태</option>
             <option value="planned">계획</option>
-            <option value="in-progress">진행</option>
+            <option value="in_progress">진행</option>
             <option value="completed">완료</option>
           </select>
         </div>

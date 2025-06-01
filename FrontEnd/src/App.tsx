@@ -16,12 +16,13 @@ const queryClient = new QueryClient();
 // 내부 라우터 컴포넌트
 const AppRoutes = () => {
   const navigate = useNavigate();
-  const setNavigate = useAuthStore((state) => state.setNavigate);
+  const { setNavigate, initializeAuth } = useAuthStore();
 
-  // Store에 navigate 함수 등록
+  // Store에 navigate 함수 등록 및 인증 초기화
   useEffect(() => {
     setNavigate(navigate);
-  }, [navigate, setNavigate]);
+    initializeAuth();
+  }, [navigate, setNavigate, initializeAuth]);
 
   return (
     <AuthLayout>

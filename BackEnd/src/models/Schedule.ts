@@ -56,7 +56,14 @@ class ScheduleModel {
           { startTime: 'asc' }
         ],
         include: {
-          project: true
+          project: true,
+          user: {
+            select: {
+              id: true,
+              username: true,
+              name: true
+            }
+          }
         }
       });
     } catch (error) {
@@ -70,7 +77,14 @@ class ScheduleModel {
       return await prisma.schedule.findUnique({
         where: { id },
         include: {
-          project: true
+          project: true,
+          user: {
+            select: {
+              id: true,
+              username: true,
+              name: true
+            }
+          }
         }
       });
     } catch (error) {
@@ -84,7 +98,14 @@ class ScheduleModel {
       return await prisma.schedule.create({
         data: scheduleData,
         include: {
-          project: true
+          project: true,
+          user: {
+            select: {
+              id: true,
+              username: true,
+              name: true
+            }
+          }
         }
       });
     } catch (error) {
@@ -106,7 +127,14 @@ class ScheduleModel {
         where: { id },
         data: scheduleData,
         include: {
-          project: true
+          project: true,
+          user: {
+            select: {
+              id: true,
+              username: true,
+              name: true
+            }
+          }
         }
       });
     } catch (error) {

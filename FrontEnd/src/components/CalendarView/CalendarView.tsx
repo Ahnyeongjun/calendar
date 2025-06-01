@@ -18,11 +18,9 @@ import {
   isSameDay,
   isSameMonth,
   addMonths,
-  subMonths
+  subMonths,
+  toDateString
 } from '@/util/dateUtils';
-
-// Mock data
-import { mockSchedules } from '@/data/mockSchedules';
 
 interface CalendarViewProps {
   schedules: Schedule[];
@@ -34,7 +32,7 @@ interface CalendarViewProps {
 
 // Main Calendar View Component
 const CalendarView = ({
-  schedules = mockSchedules,
+  schedules = [],
   onScheduleClick = () => { },
   onDateClick = () => { },
   selectedProjectId,
@@ -51,7 +49,15 @@ const CalendarView = ({
   const calendarDays = eachDayOfInterval(calendarStart, calendarEnd);
 
   const getSchedulesForDate = (date: Date) => {
-    return schedules.filter(schedule => isSameDay(schedule.date, date));
+    const dateString = toDateString(date);
+    return schedules.filter(schedule => {
+      // schedule.date가 string 형태인 경우 처리
+      const scheduleDate = typeof schedule.date === 'string' 
+        ? schedule.date.split('T')[0] // ISO string에서 날짜 부분만 추출
+        : toDateString(new Date(schedule.date));
+      
+      return scheduleDate === dateString;
+    });
   };
 
   const handleMoreClick = (e: React.MouseEvent, date: Date, daySchedules: Schedule[]) => {

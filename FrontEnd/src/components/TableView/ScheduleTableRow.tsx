@@ -9,8 +9,8 @@ import { useProject } from '@/hooks/useProject';
 interface ScheduleTableRowProps {
   schedule: Schedule;
   onScheduleClick: (schedule: Schedule) => void;
-  onStatusChange: (id: string, status: 'planned' | 'in-progress' | 'completed') => void;
-  onDeleteSchedule: (id: string) => void;
+  onStatusChange: (id: string, status: 'planned' | 'in_progress' | 'completed') => Promise<void>;
+  onDeleteSchedule: (id: string) => Promise<void>;
   hideProject?: boolean; // 프로젝트 그룹핑 시 프로젝트 컬럼 숨김
 }
 
@@ -35,14 +35,42 @@ export const ScheduleTableRow = ({
   const getStatusColor = (status: string) => {
     const colors = {
       planned: 'bg-gray-100 text-gray-800',
-      'in-progress': 'bg-blue-100 text-blue-800',
+      'in_progress': 'bg-blue-100 text-blue-800',
       completed: 'bg-green-100 text-green-800'
     };
     return colors[status as keyof typeof colors] || colors.planned;
   };
 
-  const handleStatusChange = (newStatus: 'planned' | 'in-progress' | 'completed') => {
-    onStatusChange(schedule.id, newStatus);
+  const getStatusText = (status: string) => {
+    const statusText = {
+      planned: '계획',
+      'in_progress': '진행',
+      completed: '완료'
+    };
+    return statusText[status as keyof typeof statusText] || '계획';
+  };
+
+  const handleStatusChange = async (newStatus: 'planned' | 'in_progress' | 'completed') => {
+    await onStatusChange(schedule.id, newStatus);
+  };
+
+  const handleDelete = async () => {
+    if (window.confirm('이 일정을 삭제하시겠습니까?')) {
+      await onDeleteSchedule(schedule.id);
+    }
+  };
+
+  const formatTime = (timeString?: string) => {
+    if (!timeString) return '';
+    
+    try {
+      // ISO datetime string에서 시간만 추출
+      const date = new Date(timeString);
+      return format(date, 'HH:mm');
+    } catch {
+      // 이미 HH:mm 형태라면 그대로 반환
+      return timeString;
+    }
   };
 
   return (
@@ -60,7 +88,7 @@ export const ScheduleTableRow = ({
           onClick={(e) => e.stopPropagation()}
         >
           <option value="planned">계획</option>
-          <option value="in-progress">진행</option>
+          <option value="in_progress">진행</option>
           <option value="completed">완료</option>
         </select>
       </td>
@@ -80,13 +108,18 @@ export const ScheduleTableRow = ({
       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
         <div className="flex items-center space-x-1">
           <Calendar size={14} className="text-gray-400" />
-          <span>{format(schedule.date, 'M월 d일 (E)', { locale: ko })}</span>
+          <span>{format(new Date(schedule.date), 'M월 d일 (E)', { locale: ko })}</span>
         </div>
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
         <div className="flex items-center space-x-1">
           <Clock size={14} className="text-gray-400" />
-          <span>{schedule.startTime} - {schedule.endTime}</span>
+          <span>
+            {schedule.startTime && schedule.endTime 
+              ? `${formatTime(schedule.startTime)} - ${formatTime(schedule.endTime)}`
+              : '시간 미설정'
+            }
+          </span>
         </div>
       </td>
       {!hideProject && (
@@ -129,7 +162,7 @@ export const ScheduleTableRow = ({
             size="sm"
             onClick={(e) => {
               e.stopPropagation();
-              onDeleteSchedule(schedule.id);
+              handleDelete();
             }}
             className="text-red-600 hover:text-red-700"
           >

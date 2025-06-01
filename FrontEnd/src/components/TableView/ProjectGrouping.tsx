@@ -8,8 +8,8 @@ import { ScheduleTableRow } from './ScheduleTableRow';
 interface ProjectGroupingProps {
   schedules: Schedule[];
   onScheduleClick: (schedule: Schedule) => void;
-  onStatusChange: (id: string, status: 'planned' | 'in-progress' | 'completed') => void;
-  onDeleteSchedule: (id: string) => void;
+  onStatusChange: (id: string, status: 'planned' | 'in_progress' | 'completed') => Promise<void>;
+  onDeleteSchedule: (id: string) => Promise<void>;
 }
 
 export const ProjectGrouping = ({ 

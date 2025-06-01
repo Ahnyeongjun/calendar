@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Plus, Edit, Trash2, Folder } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Plus, Edit, Trash2, Folder, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -30,14 +30,31 @@ const COLOR_OPTIONS = [
 ];
 
 export const ProjectManageModal = ({ isOpen, onClose }: ProjectManageModalProps) => {
-  const { projects, addProject, updateProject, deleteProject } = useProjectStore();
+  const { 
+    projects, 
+    isLoading, 
+    error, 
+    fetchProjects, 
+    addProject, 
+    updateProject, 
+    deleteProject 
+  } = useProjectStore();
+  
   const [isAddMode, setIsAddMode] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
     color: COLOR_OPTIONS[0]
   });
+
+  // 모달이 열릴 때마다 프로젝트 목록을 새로고침
+  useEffect(() => {
+    if (isOpen) {
+      fetchProjects();
+    }
+  }, [isOpen, fetchProjects]);
 
   const resetForm = () => {
     setFormData({
@@ -49,7 +66,7 @@ export const ProjectManageModal = ({ isOpen, onClose }: ProjectManageModalProps)
     setEditingProject(null);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.name.trim()) {
@@ -61,23 +78,30 @@ export const ProjectManageModal = ({ isOpen, onClose }: ProjectManageModalProps)
       return;
     }
 
-    if (editingProject) {
-      // 수정
-      updateProject(editingProject.id, formData);
-      toast({
-        title: "프로젝트가 수정되었습니다",
-        description: `"${formData.name}" 프로젝트가 성공적으로 수정되었습니다.`,
-      });
-    } else {
-      // 추가
-      addProject(formData);
-      toast({
-        title: "새 프로젝트가 추가되었습니다",
-        description: `"${formData.name}" 프로젝트가 성공적으로 추가되었습니다.`,
-      });
-    }
+    setIsSubmitting(true);
 
-    resetForm();
+    try {
+      if (editingProject) {
+        // 수정
+        await updateProject(editingProject.id, formData);
+        toast({
+          title: "프로젝트가 수정되었습니다",
+          description: `"${formData.name}" 프로젝트가 성공적으로 수정되었습니다.`,
+        });
+      } else {
+        // 추가
+        await addProject(formData);
+        toast({
+          title: "새 프로젝트가 추가되었습니다",
+          description: `"${formData.name}" 프로젝트가 성공적으로 추가되었습니다.`,
+        });
+      }
+      resetForm();
+    } catch (error) {
+      // 에러는 store에서 이미 처리되므로 여기서는 추가 처리 필요 없음
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleEdit = (project: Project) => {
@@ -90,13 +114,17 @@ export const ProjectManageModal = ({ isOpen, onClose }: ProjectManageModalProps)
     setIsAddMode(true);
   };
 
-  const handleDelete = (project: Project) => {
-    if (window.confirm(`"${project.name}" 프로젝트를 삭제하시겠습니까?`)) {
-      deleteProject(project.id);
-      toast({
-        title: "프로젝트가 삭제되었습니다",
-        description: `"${project.name}" 프로젝트가 삭제되었습니다.`,
-      });
+  const handleDelete = async (project: Project) => {
+    if (window.confirm(`"${project.name}" 프로젝트를 삭제하시겠습니까?\n\n이 프로젝트와 연결된 일정들은 프로젝트 연결이 해제됩니다.`)) {
+      try {
+        await deleteProject(project.id);
+        toast({
+          title: "프로젝트가 삭제되었습니다",
+          description: `"${project.name}" 프로젝트가 삭제되었습니다.`,
+        });
+      } catch (error) {
+        // 에러는 store에서 이미 처리됨
+      }
     }
   };
 
@@ -116,6 +144,15 @@ export const ProjectManageModal = ({ isOpen, onClose }: ProjectManageModalProps)
         </DialogHeader>
 
         <div className="space-y-6">
+          {/* 에러 표시 */}
+          {error && (
+            <Card className="border-red-200 bg-red-50">
+              <CardContent className="py-4">
+                <p className="text-red-600 text-sm">{error}</p>
+              </CardContent>
+            </Card>
+          )}
+
           {/* 프로젝트 추가/수정 폼 */}
           {isAddMode ? (
             <Card>
@@ -127,12 +164,13 @@ export const ProjectManageModal = ({ isOpen, onClose }: ProjectManageModalProps)
               <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="name">프로젝트 이름</Label>
+                    <Label htmlFor="name">프로젝트 이름 *</Label>
                     <Input
                       id="name"
                       value={formData.name}
                       onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                       placeholder="프로젝트 이름을 입력하세요"
+                      required
                     />
                   </div>
 
@@ -148,27 +186,29 @@ export const ProjectManageModal = ({ isOpen, onClose }: ProjectManageModalProps)
                   </div>
 
                   <div className="space-y-2">
-                    <Label>색상</Label>
+                    <Label>색상 *</Label>
                     <div className="flex flex-wrap gap-2">
                       {COLOR_OPTIONS.map((color) => (
                         <button
                           key={color}
                           type="button"
-                          className={`w-8 h-8 rounded-full border-2 ${
-                            formData.color === color ? 'border-gray-800' : 'border-gray-300'
+                          className={`w-8 h-8 rounded-full border-2 transition-all hover:scale-110 ${
+                            formData.color === color ? 'border-gray-800 scale-110' : 'border-gray-300'
                           }`}
                           style={{ backgroundColor: color }}
                           onClick={() => setFormData(prev => ({ ...prev, color }))}
+                          title={color}
                         />
                       ))}
                     </div>
                   </div>
 
                   <div className="flex justify-end space-x-3">
-                    <Button type="button" variant="outline" onClick={resetForm}>
+                    <Button type="button" variant="outline" onClick={resetForm} disabled={isSubmitting}>
                       취소
                     </Button>
-                    <Button type="submit">
+                    <Button type="submit" disabled={isSubmitting}>
+                      {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                       {editingProject ? '수정하기' : '추가하기'}
                     </Button>
                   </div>
@@ -177,7 +217,7 @@ export const ProjectManageModal = ({ isOpen, onClose }: ProjectManageModalProps)
             </Card>
           ) : (
             <div className="flex justify-end">
-              <Button onClick={() => setIsAddMode(true)}>
+              <Button onClick={() => setIsAddMode(true)} disabled={isLoading}>
                 <Plus size={16} className="mr-2" />
                 새 프로젝트 추가
               </Button>
@@ -187,7 +227,15 @@ export const ProjectManageModal = ({ isOpen, onClose }: ProjectManageModalProps)
           {/* 기존 프로젝트 목록 */}
           <div className="space-y-3">
             <h3 className="text-lg font-semibold">기존 프로젝트</h3>
-            {projects.length === 0 ? (
+            
+            {isLoading ? (
+              <Card>
+                <CardContent className="py-8 text-center">
+                  <Loader2 className="mx-auto h-8 w-8 animate-spin text-gray-400 mb-4" />
+                  <p className="text-gray-500">프로젝트를 불러오는 중...</p>
+                </CardContent>
+              </Card>
+            ) : projects.length === 0 ? (
               <Card>
                 <CardContent className="py-8 text-center">
                   <Folder className="mx-auto h-12 w-12 text-gray-400 mb-4" />
@@ -198,7 +246,7 @@ export const ProjectManageModal = ({ isOpen, onClose }: ProjectManageModalProps)
             ) : (
               <div className="grid gap-3">
                 {projects.map((project) => (
-                  <Card key={project.id} className="border-l-4" style={{ borderLeftColor: project.color }}>
+                  <Card key={project.id} className="border-l-4 hover:bg-gray-50 transition-colors" style={{ borderLeftColor: project.color }}>
                     <CardContent className="py-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-3">
@@ -206,11 +254,21 @@ export const ProjectManageModal = ({ isOpen, onClose }: ProjectManageModalProps)
                             className="w-4 h-4 rounded-full"
                             style={{ backgroundColor: project.color }}
                           />
-                          <div>
+                          <div className="flex-1">
                             <h4 className="font-medium">{project.name}</h4>
                             {project.description && (
-                              <p className="text-sm text-gray-600">{project.description}</p>
+                              <p className="text-sm text-gray-600 mt-1">{project.description}</p>
                             )}
+                            <div className="flex items-center space-x-2 mt-2">
+                              <Badge variant="outline" className="text-xs">
+                                생성: {new Date(project.createdAt).toLocaleDateString()}
+                              </Badge>
+                              {project.updatedAt !== project.createdAt && (
+                                <Badge variant="outline" className="text-xs">
+                                  수정: {new Date(project.updatedAt).toLocaleDateString()}
+                                </Badge>
+                              )}
+                            </div>
                           </div>
                         </div>
                         <div className="flex items-center space-x-2">
@@ -218,6 +276,7 @@ export const ProjectManageModal = ({ isOpen, onClose }: ProjectManageModalProps)
                             variant="ghost"
                             size="sm"
                             onClick={() => handleEdit(project)}
+                            disabled={isLoading}
                           >
                             <Edit size={14} />
                           </Button>
@@ -226,6 +285,7 @@ export const ProjectManageModal = ({ isOpen, onClose }: ProjectManageModalProps)
                             size="sm"
                             onClick={() => handleDelete(project)}
                             className="text-red-600 hover:text-red-700"
+                            disabled={isLoading}
                           >
                             <Trash2 size={14} />
                           </Button>

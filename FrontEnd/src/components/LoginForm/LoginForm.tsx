@@ -8,22 +8,46 @@ import { TestAccountInfo } from './TestAccountInfo';
 const LoginForm = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const login = useAuthStore((state) => state.login);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (login(username, password)) {
+    if (!username.trim() || !password.trim()) {
       toast({
-        title: "로그인 성공",
-        description: "환영합니다!",
-      });
-    } else {
-      toast({
-        title: "로그인 실패",
-        description: "아이디 또는 비밀번호가 올바르지 않습니다.",
+        title: "입력 오류",
+        description: "아이디와 비밀번호를 모두 입력해주세요.",
         variant: "destructive"
       });
+      return;
+    }
+
+    setIsLoading(true);
+    
+    try {
+      const success = await login(username, password);
+      
+      if (success) {
+        toast({
+          title: "로그인 성공",
+          description: "환영합니다!",
+        });
+      } else {
+        toast({
+          title: "로그인 실패",
+          description: "아이디 또는 비밀번호가 올바르지 않습니다.",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "로그인 오류",
+        description: "서버 연결에 실패했습니다. 잠시 후 다시 시도해주세요.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -43,6 +67,7 @@ const LoginForm = () => {
             onUsernameChange={setUsername}
             onPasswordChange={setPassword}
             onSubmit={handleSubmit}
+            isLoading={isLoading}
           />
           <TestAccountInfo />
         </CardContent>
