@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Plus, Edit, Trash2, Folder, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,16 +30,16 @@ const COLOR_OPTIONS = [
 ];
 
 export const ProjectManageModal = ({ isOpen, onClose }: ProjectManageModalProps) => {
-  const { 
-    projects, 
-    isLoading, 
-    error, 
-    fetchProjects, 
-    addProject, 
-    updateProject, 
-    deleteProject 
+  const {
+    projects,
+    isLoading,
+    error,
+    fetchProjects,
+    addProject,
+    updateProject,
+    deleteProject
   } = useProjectStore();
-  
+
   const [isAddMode, setIsAddMode] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -49,12 +49,12 @@ export const ProjectManageModal = ({ isOpen, onClose }: ProjectManageModalProps)
     color: COLOR_OPTIONS[0]
   });
 
-  // 모달이 열릴 때마다 프로젝트 목록을 새로고침
-  useEffect(() => {
-    if (isOpen) {
+  // 모달이 열릴 때 데이터 로드 - useMemo로 처리
+  useMemo(() => {
+    if (isOpen && projects.length === 0 && !isLoading) {
       fetchProjects();
     }
-  }, [isOpen, fetchProjects]);
+  }, [isOpen, projects.length, isLoading]);
 
   const resetForm = () => {
     setFormData({
@@ -68,7 +68,8 @@ export const ProjectManageModal = ({ isOpen, onClose }: ProjectManageModalProps)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+    e.stopPropagation(); // 이벤트 버블링 방지
+
     if (!formData.name.trim()) {
       toast({
         title: "오류",
@@ -128,14 +129,42 @@ export const ProjectManageModal = ({ isOpen, onClose }: ProjectManageModalProps)
     }
   };
 
-  const handleClose = () => {
+  // 모달 닫기 핸들러 - onOpenChange에서 false가 전달되었을 때만 닫기
+  const handleOpenChange = (open: boolean) => {
+    if (!open) {
+      resetForm();
+      onClose();
+    }
+  };
+
+  // 버튼 클릭 핸들러들에 이벤트 버블링 방지 추가
+  const handleAddClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsAddMode(true);
+  };
+
+  const handleCancelClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     resetForm();
-    onClose();
+  };
+
+  const handleEditClick = (e: React.MouseEvent, project: Project) => {
+    e.preventDefault();
+    e.stopPropagation();
+    handleEdit(project);
+  };
+
+  const handleDeleteClick = (e: React.MouseEvent, project: Project) => {
+    e.preventDefault();
+    e.stopPropagation();
+    handleDelete(project);
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
+      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto z-[60]">
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2">
             <Folder size={20} />
@@ -192,11 +221,14 @@ export const ProjectManageModal = ({ isOpen, onClose }: ProjectManageModalProps)
                         <button
                           key={color}
                           type="button"
-                          className={`w-8 h-8 rounded-full border-2 transition-all hover:scale-110 ${
-                            formData.color === color ? 'border-gray-800 scale-110' : 'border-gray-300'
-                          }`}
+                          className={`w-8 h-8 rounded-full border-2 transition-all hover:scale-110 ${formData.color === color ? 'border-gray-800 scale-110' : 'border-gray-300'
+                            }`}
                           style={{ backgroundColor: color }}
-                          onClick={() => setFormData(prev => ({ ...prev, color }))}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setFormData(prev => ({ ...prev, color }));
+                          }}
                           title={color}
                         />
                       ))}
@@ -204,7 +236,12 @@ export const ProjectManageModal = ({ isOpen, onClose }: ProjectManageModalProps)
                   </div>
 
                   <div className="flex justify-end space-x-3">
-                    <Button type="button" variant="outline" onClick={resetForm} disabled={isSubmitting}>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleCancelClick}
+                      disabled={isSubmitting}
+                    >
                       취소
                     </Button>
                     <Button type="submit" disabled={isSubmitting}>
@@ -217,7 +254,7 @@ export const ProjectManageModal = ({ isOpen, onClose }: ProjectManageModalProps)
             </Card>
           ) : (
             <div className="flex justify-end">
-              <Button onClick={() => setIsAddMode(true)} disabled={isLoading}>
+              <Button onClick={handleAddClick} disabled={isLoading}>
                 <Plus size={16} className="mr-2" />
                 새 프로젝트 추가
               </Button>
@@ -227,7 +264,7 @@ export const ProjectManageModal = ({ isOpen, onClose }: ProjectManageModalProps)
           {/* 기존 프로젝트 목록 */}
           <div className="space-y-3">
             <h3 className="text-lg font-semibold">기존 프로젝트</h3>
-            
+
             {isLoading ? (
               <Card>
                 <CardContent className="py-8 text-center">
@@ -250,7 +287,7 @@ export const ProjectManageModal = ({ isOpen, onClose }: ProjectManageModalProps)
                     <CardContent className="py-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-3">
-                          <div 
+                          <div
                             className="w-4 h-4 rounded-full"
                             style={{ backgroundColor: project.color }}
                           />
@@ -275,7 +312,7 @@ export const ProjectManageModal = ({ isOpen, onClose }: ProjectManageModalProps)
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleEdit(project)}
+                            onClick={(e) => handleEditClick(e, project)}
                             disabled={isLoading}
                           >
                             <Edit size={14} />
@@ -283,7 +320,7 @@ export const ProjectManageModal = ({ isOpen, onClose }: ProjectManageModalProps)
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleDelete(project)}
+                            onClick={(e) => handleDeleteClick(e, project)}
                             className="text-red-600 hover:text-red-700"
                             disabled={isLoading}
                           >
