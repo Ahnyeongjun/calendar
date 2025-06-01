@@ -1,81 +1,44 @@
 import { useState, useEffect } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { useAuthStore } from '@/stores/useAuthStore';
+import { useProjectStore } from '@/stores/useProjectStore';
+import { useScheduleStore } from '@/stores/useScheduleStore';
 import Header from '@/components/Header/Header';
 import CalendarView from '@/components/CalendarView/CalendarView';
 import TableView from '@/components/TableView/TableView';
 import ScheduleModal from '@/components/ScheduleModal/ScheduleModal';
+import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { Schedule, ViewMode, ScheduleFormData } from '@/types/schedule';
 
 const MainPage = () => {
   const { user } = useAuthStore();
-  const [schedules, setSchedules] = useState<Schedule[]>([]);
+  const {
+    projects,
+    isLoading: isProjectsLoading,
+    fetchProjects
+  } = useProjectStore();
+  const {
+    schedules,
+    isLoading: isSchedulesLoading,
+    fetchSchedules,
+    addSchedule,
+    updateSchedule,
+    deleteSchedule
+  } = useScheduleStore();
+
   const [currentView, setCurrentView] = useState<ViewMode>('calendar');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedSchedule, setSelectedSchedule] = useState<Schedule | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [projectFilter, setProjectFilter] = useState<string | undefined>();
 
-  // 사용자별 로컬 스토리지 키 생성
-  const getStorageKey = () => user ? `schedules_${user.id}` : 'schedules';
-
-  // 기존 category를 projectId로 마이그레이션하는 함수
-  const migrateScheduleData = (schedule: any): Schedule => {
-    // 기존 category를 projectId로 변환
-    let projectId: string | undefined;
-    if (schedule.category) {
-      switch (schedule.category) {
-        case 'work':
-          projectId = 'work';
-          break;
-        case 'personal':
-          projectId = 'personal';
-          break;
-        case 'meeting':
-          // meeting은 업무로 분류
-          projectId = 'work';
-          break;
-        default:
-          projectId = undefined;
-      }
-    }
-
-    return {
-      id: schedule.id,
-      title: schedule.title,
-      description: schedule.description || '',
-      date: new Date(schedule.date),
-      startTime: schedule.startTime || '09:00',
-      endTime: schedule.endTime || '10:00',
-      status: schedule.status || 'planned',
-      priority: schedule.priority || 'medium',
-      projectId: schedule.projectId || projectId, // 새 필드가 있으면 우선, 없으면 마이그레이션
-      createdAt: new Date(schedule.createdAt),
-      updatedAt: new Date(schedule.updatedAt)
-    };
-  };
-
-  // 로컬 스토리지에서 사용자별 일정 데이터 로드
+  // 초기 데이터 로드
   useEffect(() => {
     if (user) {
-      const storageKey = getStorageKey();
-      const savedSchedules = localStorage.getItem(storageKey);
-      if (savedSchedules) {
-        const parsedSchedules = JSON.parse(savedSchedules).map(migrateScheduleData);
-        setSchedules(parsedSchedules);
-      } else {
-        setSchedules([]);
-      }
+      fetchProjects();
+      fetchSchedules();
     }
-  }, [user]);
-
-  // 사용자별 일정 데이터 로컬 스토리지에 저장
-  useEffect(() => {
-    if (user && schedules.length > 0) {
-      const storageKey = getStorageKey();
-      localStorage.setItem(storageKey, JSON.stringify(schedules));
-    }
-  }, [schedules, user]);
+  }, [user, fetchProjects, fetchSchedules]);
 
   // 프로젝트 필터링된 일정들
   const filteredSchedules = schedules.filter(schedule => {
@@ -84,34 +47,33 @@ const MainPage = () => {
     return schedule.projectId === projectFilter;
   });
 
-  const handleSaveSchedule = (data: ScheduleFormData, scheduleId?: string) => {
-    if (scheduleId) {
-      // 기존 일정 수정
-      setSchedules(prev => prev.map(schedule =>
-        schedule.id === scheduleId
-          ? { ...schedule, ...data, updatedAt: new Date() }
-          : schedule
-      ));
+  const handleSaveSchedule = async (data: ScheduleFormData, scheduleId?: string) => {
+    try {
+      if (scheduleId) {
+        // 기존 일정 수정
+        await updateSchedule(scheduleId, data);
+        toast({
+          title: "일정이 수정되었습니다",
+          description: `"${data.title}" 일정이 성공적으로 수정되었습니다.`,
+        });
+      } else {
+        // 새 일정 추가
+        await addSchedule(data);
+        toast({
+          title: "새 일정이 추가되었습니다",
+          description: `"${data.title}" 일정이 성공적으로 추가되었습니다.`,
+        });
+      }
+      setSelectedSchedule(null);
+      setSelectedDate(undefined);
+      setIsModalOpen(false);
+    } catch (error) {
       toast({
-        title: "일정이 수정되었습니다",
-        description: `"${data.title}" 일정이 성공적으로 수정되었습니다.`,
-      });
-    } else {
-      // 새 일정 추가
-      const newSchedule: Schedule = {
-        id: Date.now().toString(),
-        ...data,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      };
-      setSchedules(prev => [...prev, newSchedule]);
-      toast({
-        title: "새 일정이 추가되었습니다",
-        description: `"${data.title}" 일정이 성공적으로 추가되었습니다.`,
+        title: "오류가 발생했습니다",
+        description: error instanceof Error ? error.message : "일정 저장에 실패했습니다.",
+        variant: "destructive"
       });
     }
-    setSelectedSchedule(null);
-    setSelectedDate(undefined);
   };
 
   const handleScheduleClick = (schedule: Schedule) => {
@@ -131,34 +93,55 @@ const MainPage = () => {
     setIsModalOpen(true);
   };
 
-  const handleDeleteSchedule = (id: string) => {
-    const schedule = schedules.find(s => s.id === id);
-    setSchedules(prev => prev.filter(schedule => schedule.id !== id));
+  const handleDeleteSchedule = async (id: string) => {
+    try {
+      const schedule = schedules.find(s => s.id === id);
+      await deleteSchedule(id);
 
-    if (schedule) {
+      if (schedule) {
+        toast({
+          title: "일정이 삭제되었습니다",
+          description: `"${schedule.title}" 일정이 성공적으로 삭제되었습니다.`,
+        });
+      }
+    } catch (error) {
       toast({
-        title: "일정이 삭제되었습니다",
-        description: `"${schedule.title}" 일정이 성공적으로 삭제되었습니다.`,
+        title: "삭제 실패",
+        description: error instanceof Error ? error.message : "일정 삭제에 실패했습니다.",
+        variant: "destructive"
       });
     }
   };
 
-  const handleStatusChange = (id: string, status: 'planned' | 'in-progress' | 'completed') => {
-    setSchedules(prev => prev.map(schedule =>
-      schedule.id === id
-        ? { ...schedule, status, updatedAt: new Date() }
-        : schedule
-    ));
+  const handleStatusChange = async (id: string, status: 'planned' | 'in_progress' | 'completed') => {
+    try {
+      const schedule = schedules.find(s => s.id === id);
+      await updateSchedule(id, { status });
 
-    const schedule = schedules.find(s => s.id === id);
-    if (schedule) {
-      const statusText = status === 'planned' ? '계획' : status === 'in-progress' ? '진행' : '완료';
+      if (schedule) {
+        const statusText = status === 'planned' ? '계획' : status === 'in_progress' ? '진행' : '완료';
+        toast({
+          title: "일정 상태가 변경되었습니다",
+          description: `"${schedule.title}" 일정이 ${statusText} 상태로 변경되었습니다.`,
+        });
+      }
+    } catch (error) {
       toast({
-        title: "일정 상태가 변경되었습니다",
-        description: `"${schedule.title}" 일정이 ${statusText} 상태로 변경되었습니다.`,
+        title: "상태 변경 실패",
+        description: error instanceof Error ? error.message : "일정 상태 변경에 실패했습니다.",
+        variant: "destructive"
       });
     }
   };
+
+  // 로딩 상태 처리
+  if (isProjectsLoading || isSchedulesLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
+        <LoadingSpinner />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">

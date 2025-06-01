@@ -1,30 +1,30 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { User } from '@/types/auth';
+import { User, AuthResult } from '@/types/auth';
+import { authService } from '@/services/authService';
 
 interface AuthState {
   user: User | null;
+  token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   // 라우터 인스턴스 저장
   navigate: ((to: string, options?: { replace?: boolean }) => void) | null;
+  
+  // Actions
   setNavigate: (navigate: (to: string, options?: { replace?: boolean }) => void) => void;
   setLoading: (loading: boolean) => void;
-  // 인증 액션들
-  login: (username: string, password: string) => boolean;
+  login: (username: string, password: string) => Promise<boolean>;
   logout: () => void;
+  initializeAuth: () => Promise<void>;
+  updateUser: (user: User) => void;
 }
-
-// 테스트 계정 데이터
-const TEST_ACCOUNTS = [
-  { id: '1', username: 'admin', password: '1234', name: '관리자' },
-  { id: '2', username: 'admin2', password: '1234', name: '관리자2' }
-];
 
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
       user: null,
+      token: null,
       isAuthenticated: false,
       isLoading: true, // 초기 로딩 상태
       navigate: null,
@@ -37,14 +37,15 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: loading });
       },
       
-      login: (username: string, password: string) => {
-        const account = TEST_ACCOUNTS.find(
-          acc => acc.username === username && acc.password === password
-        );
-        
-        if (account) {
-          const userData = { id: account.id, username: account.username, name: account.name };
-          set({ user: userData, isAuthenticated: true });
+      login: async (username: string, password: string) => {
+        try {
+          const authResult: AuthResult = await authService.login({ username, password });
+          
+          set({ 
+            user: authResult.user, 
+            token: authResult.token,
+            isAuthenticated: true 
+          });
           
           // 로그인 성공 시 메인 페이지로 이동
           const { navigate } = get();
@@ -53,27 +54,76 @@ export const useAuthStore = create<AuthState>()(
           }
           
           return true;
+        } catch (error) {
+          console.error('Login failed:', error);
+          return false;
         }
-        return false;
       },
       
       logout: () => {
-        set({ user: null, isAuthenticated: false });
+        authService.logout();
+        set({ 
+          user: null, 
+          token: null,
+          isAuthenticated: false 
+        });
         
         // 로그아웃 시 로그인 페이지로 이동
         const { navigate } = get();
         if (navigate) {
           navigate('/login', { replace: true });
         }
+      },
+      
+      initializeAuth: async () => {
+        try {
+          const token = authService.getToken();
+          
+          if (!token || !authService.isAuthenticated()) {
+            set({ isLoading: false, isAuthenticated: false });
+            return;
+          }
+          
+          // 토큰이 유효하면 사용자 정보 가져오기
+          try {
+            const { user } = await authService.getProfile();
+            set({ 
+              user, 
+              token,
+              isAuthenticated: true, 
+              isLoading: false 
+            });
+          } catch (error) {
+            // 토큰이 유효하지 않은 경우 로그아웃
+            authService.logout();
+            set({ 
+              user: null, 
+              token: null,
+              isAuthenticated: false, 
+              isLoading: false 
+            });
+          }
+        } catch (error) {
+          console.error('Auth initialization failed:', error);
+          set({ isLoading: false, isAuthenticated: false });
+        }
+      },
+      
+      updateUser: (user: User) => {
+        set({ user });
       }
     }),
     {
       name: 'auth-storage',
-      partialize: (state) => ({ user: state.user, isAuthenticated: state.isAuthenticated }),
+      partialize: (state) => ({ 
+        user: state.user, 
+        token: state.token,
+        isAuthenticated: state.isAuthenticated 
+      }),
       onRehydrateStorage: () => (state) => {
-        // persist 데이터 복원 완료 시 로딩 해제
+        // persist 데이터 복원 완료 시 인증 상태 확인
         if (state) {
-          state.setLoading(false);
+          state.initializeAuth();
         }
       }
     }

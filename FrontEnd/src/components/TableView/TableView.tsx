@@ -11,14 +11,14 @@ import { ProjectGrouping } from './ProjectGrouping';
 interface TableViewProps {
   schedules: Schedule[];
   onScheduleClick: (schedule: Schedule) => void;
-  onStatusChange: (id: string, status: 'planned' | 'in-progress' | 'completed') => void;
-  onDeleteSchedule: (id: string) => void;
+  onStatusChange: (id: string, status: 'planned' | 'in_progress' | 'completed') => Promise<void>;
+  onDeleteSchedule: (id: string) => Promise<void>;
 }
 
 const TableView = ({ schedules, onScheduleClick, onStatusChange, onDeleteSchedule }: TableViewProps) => {
   const [sortBy, setSortBy] = useState<'date' | 'priority' | 'project' | 'status'>('date');
   const [filterBy, setFilterBy] = useState<'all' | string>('all');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'planned' | 'in-progress' | 'completed'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'planned' | 'in_progress' | 'completed'>('all');
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [groupByProject, setGroupByProject] = useState(false);
   
@@ -28,8 +28,12 @@ const TableView = ({ schedules, onScheduleClick, onStatusChange, onDeleteSchedul
   const monthEnd = endOfMonth(currentMonth);
 
   const filteredSchedules = schedules.filter(schedule => {
-    const isInCurrentMonth = schedule.date >= monthStart && schedule.date <= monthEnd;
-    const matchesProject = filterBy === 'all' || schedule.projectId === filterBy;
+    // 날짜 문자열을 Date 객체로 변환하여 비교
+    const scheduleDate = new Date(schedule.date);
+    const isInCurrentMonth = scheduleDate >= monthStart && scheduleDate <= monthEnd;
+    const matchesProject = filterBy === 'all' || 
+                          (filterBy === 'none' && !schedule.projectId) ||
+                          schedule.projectId === filterBy;
     const matchesStatus = statusFilter === 'all' || schedule.status === statusFilter;
     return isInCurrentMonth && matchesProject && matchesStatus;
   });
@@ -46,7 +50,7 @@ const TableView = ({ schedules, onScheduleClick, onStatusChange, onDeleteSchedul
         const bProject = b.projectId || 'zzz';
         return aProject.localeCompare(bProject);
       case 'status':
-        const statusOrder = { planned: 1, 'in-progress': 2, completed: 3 };
+        const statusOrder = { planned: 1, 'in_progress': 2, completed: 3 };
         return statusOrder[a.status] - statusOrder[b.status];
       default:
         return 0;
@@ -59,6 +63,16 @@ const TableView = ({ schedules, onScheduleClick, onStatusChange, onDeleteSchedul
     ...projects.map(project => ({ value: project.id, label: project.name })),
     { value: 'none', label: '프로젝트 없음' }
   ];
+
+  // 상태 변경 핸들러
+  const handleStatusChange = async (id: string, status: 'planned' | 'in_progress' | 'completed') => {
+    await onStatusChange(id, status);
+  };
+
+  // 삭제 핸들러
+  const handleDeleteSchedule = async (id: string) => {
+    await onDeleteSchedule(id);
+  };
 
   return (
     <div className="p-6">
@@ -81,8 +95,8 @@ const TableView = ({ schedules, onScheduleClick, onStatusChange, onDeleteSchedul
           <ProjectGrouping
             schedules={sortedSchedules}
             onScheduleClick={onScheduleClick}
-            onStatusChange={onStatusChange}
-            onDeleteSchedule={onDeleteSchedule}
+            onStatusChange={handleStatusChange}
+            onDeleteSchedule={handleDeleteSchedule}
           />
         ) : (
           <Card className="overflow-hidden shadow-sm">
@@ -119,8 +133,8 @@ const TableView = ({ schedules, onScheduleClick, onStatusChange, onDeleteSchedul
                       key={schedule.id}
                       schedule={schedule}
                       onScheduleClick={onScheduleClick}
-                      onStatusChange={onStatusChange}
-                      onDeleteSchedule={onDeleteSchedule}
+                      onStatusChange={handleStatusChange}
+                      onDeleteSchedule={handleDeleteSchedule}
                     />
                   ))}
                 </tbody>

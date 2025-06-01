@@ -65,3 +65,28 @@ export const subMonths = (date: Date, months: number) => {
   result.setMonth(result.getMonth() - months);
   return result;
 };
+
+// 시간대 문제 없이 안전한 날짜 변환 함수들
+export const toDateString = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+export const fromDateString = (dateString: string): Date => {
+  const [year, month, day] = dateString.split('-').map(Number);
+  return new Date(year, month - 1, day);
+};
+
+export const formatDateForDisplay = (date: Date | string): string => {
+  const dateObj = typeof date === 'string' ? fromDateString(date) : date;
+  const year = dateObj.getFullYear();
+  const month = dateObj.getMonth() + 1;
+  const day = dateObj.getDate();
+  return `${year}년 ${month}월 ${day}일`;
+};
+
+export const isToday = (date: Date): boolean => {
+  return isSameDay(date, new Date());
+};

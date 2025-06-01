@@ -10,6 +10,7 @@ import { DatePicker } from './DatePicker';
 import { TimeRangePicker } from './TimeRangePicker';
 import { ScheduleOptions } from './ScheduleOptions';
 import { ProjectSelector } from './ProjectSelector';
+import { toDateString, fromDateString } from '@/util/dateUtils';
 
 interface ScheduleModalProps {
   isOpen: boolean;
@@ -23,7 +24,7 @@ const ScheduleModal = ({ isOpen, onClose, onSave, schedule, selectedDate }: Sche
   const [formData, setFormData] = useState<ScheduleFormData>({
     title: '',
     description: '',
-    date: selectedDate || new Date(),
+    date: selectedDate ? toDateString(selectedDate) : toDateString(new Date()),
     startTime: '09:00',
     endTime: '10:00',
     projectId: undefined,
@@ -33,32 +34,63 @@ const ScheduleModal = ({ isOpen, onClose, onSave, schedule, selectedDate }: Sche
 
   useEffect(() => {
     if (schedule) {
+      // Backend에서 받은 데이터를 폼 데이터로 변환
+      const scheduleDate = new Date(schedule.date);
+      const startTime = schedule.startTime ? new Date(schedule.startTime).toTimeString().slice(0, 5) : undefined;
+      const endTime = schedule.endTime ? new Date(schedule.endTime).toTimeString().slice(0, 5) : undefined;
+      
       setFormData({
         title: schedule.title,
-        description: schedule.description,
-        date: schedule.date,
-        startTime: schedule.startTime,
-        endTime: schedule.endTime,
+        description: schedule.description || '',
+        date: toDateString(scheduleDate),
+        startTime: startTime || '09:00',
+        endTime: endTime || '10:00',
         projectId: schedule.projectId,
         priority: schedule.priority,
         status: schedule.status
       });
     } else if (selectedDate) {
-      setFormData(prev => ({ ...prev, date: selectedDate }));
+      setFormData(prev => ({ 
+        ...prev, 
+        date: toDateString(selectedDate)
+      }));
+    } else {
+      // 기본값으로 리셋
+      setFormData({
+        title: '',
+        description: '',
+        date: toDateString(new Date()),
+        startTime: '09:00',
+        endTime: '10:00',
+        projectId: undefined,
+        priority: 'medium',
+        status: 'planned'
+      });
     }
-  }, [schedule, selectedDate]);
+  }, [schedule, selectedDate, isOpen]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // 입력 검증
+    if (!formData.title.trim()) {
+      alert('제목을 입력해주세요.');
+      return;
+    }
+    
+    if (!formData.date) {
+      alert('날짜를 선택해주세요.');
+      return;
+    }
+    
     onSave(formData, schedule?.id);
-    onClose();
   };
 
   const handleClose = () => {
     setFormData({
       title: '',
       description: '',
-      date: selectedDate || new Date(),
+      date: toDateString(new Date()),
       startTime: '09:00',
       endTime: '10:00',
       projectId: undefined,
@@ -110,8 +142,10 @@ const ScheduleModal = ({ isOpen, onClose, onSave, schedule, selectedDate }: Sche
             <div className="space-y-2">
               <Label>날짜</Label>
               <DatePicker
-                date={formData.date}
-                onDateChange={(date) => updateFormData({ date })}
+                date={fromDateString(formData.date)}
+                onDateChange={(date) => updateFormData({ 
+                  date: toDateString(date)
+                })}
               />
             </div>
 

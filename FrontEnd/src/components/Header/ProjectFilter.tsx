@@ -1,6 +1,6 @@
 import { Filter } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useProject } from '@/hooks/useProject';
+import { useProjectStore } from '@/stores/useProjectStore';
 
 interface ProjectFilterProps {
   selectedProjectId?: string;
@@ -8,7 +8,7 @@ interface ProjectFilterProps {
 }
 
 export const ProjectFilter = ({ selectedProjectId, onProjectChange }: ProjectFilterProps) => {
-  const { projects, getProject } = useProject();
+  const { projects, getProject } = useProjectStore();
   const selectedProject = selectedProjectId ? getProject(selectedProjectId) : null;
 
   const handleValueChange = (value: string) => {
