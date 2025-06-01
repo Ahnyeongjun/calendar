@@ -3,8 +3,8 @@ import { Button } from '@/components/ui/button';
 import { ViewMode } from '@/types/schedule';
 
 interface ViewToggleProps {
-  currentView: ViewMode;
-  onViewChange: (view: ViewMode) => void;
+  currentView: 'calendar' | 'table';
+  onViewChange: (view: 'calendar' | 'table') => void;
 }
 
 export const ViewToggle = ({ currentView, onViewChange }: ViewToggleProps) => {

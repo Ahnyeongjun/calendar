@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Plus, Edit, Trash2, Folder, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -49,12 +49,16 @@ export const ProjectManageModal = ({ isOpen, onClose }: ProjectManageModalProps)
     color: COLOR_OPTIONS[0]
   });
 
-  // 모달이 열릴 때 데이터 로드 - useMemo로 처리
-  useMemo(() => {
-    if (isOpen && projects.length === 0 && !isLoading) {
+  // 모달이 열릴 때 데이터 로드 - 직접 처리
+  const prevIsOpenRef = useRef(isOpen);
+
+  useEffect(() => {
+    // isOpen이 false에서 true로 변경될 때만 실행
+    if (isOpen && !prevIsOpenRef.current) {
       fetchProjects();
     }
-  }, [isOpen, projects.length, isLoading]);
+    prevIsOpenRef.current = isOpen;
+  }, [isOpen]);
 
   const resetForm = () => {
     setFormData({

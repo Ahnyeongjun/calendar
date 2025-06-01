@@ -3,12 +3,13 @@ import { toast } from '@/hooks/use-toast';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { useProjectStore } from '@/stores/useProjectStore';
 import { useScheduleStore } from '@/stores/useScheduleStore';
+import { useUIStore } from '@/stores/useUIStore';
 import Header from '@/components/Header/Header';
 import CalendarView from '@/components/CalendarView/CalendarView';
 import TableView from '@/components/TableView/TableView';
 import ScheduleModal from '@/components/ScheduleModal/ScheduleModal';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
-import { Schedule, ViewMode, ScheduleFormData } from '@/types/schedule';
+import { Schedule, ScheduleFormData } from '@/types/schedule';
 
 const MainPage = () => {
   const { user } = useAuthStore();
@@ -26,11 +27,27 @@ const MainPage = () => {
     deleteSchedule
   } = useScheduleStore();
 
-  const [currentView, setCurrentView] = useState<ViewMode>('calendar');
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  // UI Store에서 상태 및 액션 가져오기
+  const {
+    currentView,
+    setCurrentView,
+    isScheduleModalOpen,
+    openScheduleModal,
+    closeScheduleModal
+  } = useUIStore();
+
   const [selectedSchedule, setSelectedSchedule] = useState<Schedule | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [projectFilter, setProjectFilter] = useState<string | undefined>();
+
+  // 초기 로딩 상태 처리 (최초 마운트시만)
+  const [hasInitiallyLoaded, setHasInitiallyLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!isProjectsLoading && !isSchedulesLoading && !hasInitiallyLoaded) {
+      setHasInitiallyLoaded(true);
+    }
+  }, [isProjectsLoading, isSchedulesLoading, hasInitiallyLoaded]);
 
   // 초기 데이터 로드
   useEffect(() => {
@@ -38,7 +55,7 @@ const MainPage = () => {
       fetchProjects();
       fetchSchedules();
     }
-  }, [user, fetchProjects, fetchSchedules]);
+  }, [user]); // 함수 의존성 제거
 
   // 프로젝트 필터링된 일정들
   const filteredSchedules = schedules.filter(schedule => {
@@ -66,7 +83,7 @@ const MainPage = () => {
       }
       setSelectedSchedule(null);
       setSelectedDate(undefined);
-      setIsModalOpen(false);
+      closeScheduleModal();
     } catch (error) {
       toast({
         title: "오류가 발생했습니다",
@@ -78,19 +95,19 @@ const MainPage = () => {
 
   const handleScheduleClick = (schedule: Schedule) => {
     setSelectedSchedule(schedule);
-    setIsModalOpen(true);
+    openScheduleModal();
   };
 
   const handleDateClick = (date: Date) => {
     setSelectedDate(date);
     setSelectedSchedule(null);
-    setIsModalOpen(true);
+    openScheduleModal();
   };
 
   const handleAddSchedule = () => {
     setSelectedSchedule(null);
     setSelectedDate(undefined);
-    setIsModalOpen(true);
+    openScheduleModal();
   };
 
   const handleDeleteSchedule = async (id: string) => {
@@ -134,8 +151,8 @@ const MainPage = () => {
     }
   };
 
-  // 로딩 상태 처리
-  if (isProjectsLoading || isSchedulesLoading) {
+  // 초기 로딩만 표시 (추가 데이터 로드시에는 전체 화면 로딩 안함)
+  if (!hasInitiallyLoaded && (isProjectsLoading || isSchedulesLoading)) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
         <LoadingSpinner />
@@ -171,9 +188,9 @@ const MainPage = () => {
       </main>
 
       <ScheduleModal
-        isOpen={isModalOpen}
+        isOpen={isScheduleModalOpen}
         onClose={() => {
-          setIsModalOpen(false);
+          closeScheduleModal();
           setSelectedSchedule(null);
           setSelectedDate(undefined);
         }}
