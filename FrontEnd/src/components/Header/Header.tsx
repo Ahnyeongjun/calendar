@@ -4,8 +4,8 @@ import { UserWelcome } from './UserWelcome';
 import { HeaderActions } from './HeaderActions';
 
 interface HeaderProps {
-  currentView: ViewMode;
-  onViewChange: (view: ViewMode) => void;
+  currentView: 'calendar' | 'table';
+  onViewChange: (view: 'calendar' | 'table') => void;
   onAddSchedule: () => void;
 }
 
