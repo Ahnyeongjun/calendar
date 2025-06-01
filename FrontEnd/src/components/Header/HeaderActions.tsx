@@ -28,6 +28,18 @@ export const HeaderActions = ({ onAddSchedule }: HeaderActionsProps) => {
     navigate('/mypage');
   };
 
+  // 프로젝트 관리 버튼 클릭 핸들러 - 이벤트 버블링 방지
+  const handleProjectManageClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsProjectManageOpen(true);
+  };
+
+  // 모달 닫기 핸들러
+  const handleProjectManageClose = () => {
+    setIsProjectManageOpen(false);
+  };
+
   return (
     <TooltipProvider>
       <div className="flex items-center space-x-2 h-10">
@@ -47,7 +59,7 @@ export const HeaderActions = ({ onAddSchedule }: HeaderActionsProps) => {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setIsProjectManageOpen(true)}
+              onClick={handleProjectManageClick}
               className="w-10 h-10 p-0"
             >
               <Folder size={16} />
@@ -93,7 +105,7 @@ export const HeaderActions = ({ onAddSchedule }: HeaderActionsProps) => {
         {/* 프로젝트 관리 모달 */}
         <ProjectManageModal
           isOpen={isProjectManageOpen}
-          onClose={() => setIsProjectManageOpen(false)}
+          onClose={handleProjectManageClose}
         />
       </div>
     </TooltipProvider>
