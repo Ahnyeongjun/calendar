@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import ScheduleModel from '../models/Schedule';
 import { Status, Priority } from '@prisma/client';
 import { prisma } from '../config/prisma';
+import { kafkaProducer } from '../services/kafka.client';
 
 // 추가: 사용자 인증 정보를 요청에서 가져오는 인터페이스
 interface AuthenticatedRequest extends Request {
@@ -94,6 +95,17 @@ const scheduleController = {
       
       const newSchedule = await ScheduleModel.create(scheduleData);
       
+      // Kafka로 캘린더 이벤트 발행
+      await kafkaProducer.publishEvent('calendar-events', newSchedule.id, {
+        id: newSchedule.id,
+        title: newSchedule.title,
+        description: newSchedule.description || undefined,
+        startDate: newSchedule.startTime?.toISOString() || newSchedule.date.toISOString(),
+        endDate: newSchedule.endTime?.toISOString() || newSchedule.date.toISOString(),
+        userId: newSchedule.userId,
+        type: 'CREATE'
+      });
+      
       res.status(201).json({ schedule: newSchedule });
     } catch (error) {
       console.error('Create schedule error:', error);
@@ -148,6 +160,17 @@ const scheduleController = {
         return;
       }
       
+      // Kafka로 업데이트 이벤트 발행
+      await kafkaProducer.publishEvent('calendar-events', updatedSchedule.id, {
+        id: updatedSchedule.id,
+        title: updatedSchedule.title,
+        description: updatedSchedule.description || undefined,
+        startDate: updatedSchedule.startTime?.toISOString() || updatedSchedule.date.toISOString(),
+        endDate: updatedSchedule.endTime?.toISOString() || updatedSchedule.date.toISOString(),
+        userId: updatedSchedule.userId,
+        type: 'UPDATE'
+      });
+      
       res.status(200).json({ schedule: updatedSchedule });
     } catch (error) {
       console.error('Update schedule error:', error);
@@ -183,6 +206,17 @@ const scheduleController = {
         res.status(404).json({ message: '일정을 찾을 수 없습니다.' });
         return;
       }
+      
+      // Kafka로 삭제 이벤트 발행
+      await kafkaProducer.publishEvent('calendar-events', existingSchedule.id, {
+        id: existingSchedule.id,
+        title: existingSchedule.title,
+        description: existingSchedule.description || undefined,
+        startDate: existingSchedule.startTime?.toISOString() || existingSchedule.date.toISOString(),
+        endDate: existingSchedule.endTime?.toISOString() || existingSchedule.date.toISOString(),
+        userId: existingSchedule.userId,
+        type: 'DELETE'
+      });
       
       res.status(200).json({ message: '일정이 성공적으로 삭제되었습니다.' });
     } catch (error) {

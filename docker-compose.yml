@@ -1,0 +1,121 @@
+version: '3.8'
+
+services:
+  # Zookeeper for Kafka
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+
+  # Kafka Message Broker
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+
+  # MySQL Database
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: calender
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
+      timeout: 20s
+      retries: 10
+
+  # Calendar Backend
+  calendar-backend:
+    build: ./BackEnd
+    ports:
+      - "3001:3001"
+    environment:
+      DATABASE_URL: mysql://root:password@mysql:3306/calender
+      KAFKA_BROKERS: kafka:9092
+      JWT_SECRET: your_secret_key_here
+      KAFKAJS_NO_PARTITIONER_WARNING: 1
+    depends_on:
+      mysql:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+
+  # Notification Service
+  notification-service:
+    build: ./notification-service
+    ports:
+      - "3002:3002"
+    environment:
+      KAFKA_BROKERS: kafka:9092
+      DISCORD_BOT_TOKEN: ${DISCORD_BOT_TOKEN:-your_discord_token_here}
+      DISCORD_GUILD_ID: ${DISCORD_GUILD_ID:-your_guild_id_here}
+      DISCORD_CHANNEL_ID: ${DISCORD_CHANNEL_ID:-your_channel_id_here}
+      CALENDAR_API_URL: http://calendar-backend:3001
+      KAFKAJS_NO_PARTITIONER_WARNING: 1
+    depends_on:
+      kafka:
+        condition: service_started
+    restart: unless-stopped
+
+  # Frontend (React)
+  calendar-frontend:
+    build:
+      context: ./FrontEnd
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: http://localhost:3001
+    ports:
+      - "3000:80"
+    depends_on:
+      - calendar-backend
+    environment:
+      - NODE_ENV=production
+
+  # Kafka UI (Web interface for Kafka management)
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    ports:
+      - "8080:8080"
+    environment:
+      DYNAMIC_CONFIG_ENABLED: 'true'
+      KAFKA_CLUSTERS_0_NAME: calendar-cluster
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+      KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
+    depends_on:
+      - kafka
+    restart: unless-stopped
+
+  # Alternative: Kafdrop (Lightweight Kafka UI)
+  kafdrop:
+    image: obsidiandynamics/kafdrop:latest
+    container_name: kafdrop
+    ports:
+      - "8081:9000"
+    environment:
+      KAFKA_BROKERCONNECT: kafka:9092
+      JVM_OPTS: "-Xms32M -Xmx64M"
+      SERVER_SERVLET_CONTEXTPATH: "/"
+    depends_on:
+      - kafka
+    restart: unless-stopped
+    profiles:
+      - kafdrop # Optional service
+
+volumes:
+  mysql_data:

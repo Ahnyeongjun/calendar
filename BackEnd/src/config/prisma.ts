@@ -38,7 +38,7 @@ async function seedDatabase(): Promise<void> {
         data: {
           id: '1',
           username: 'admin',
-          password: await import('bcrypt').then(bcrypt => bcrypt.hash('1234', 10)),
+          password: await import('bcryptjs').then(bcrypt => bcrypt.hash('1234', 10)),
           name: '관리자'
         }
       });
@@ -50,7 +50,7 @@ async function seedDatabase(): Promise<void> {
         data: {
           id: '2',
           username: 'admin2',
-          password: await import('bcrypt').then(bcrypt => bcrypt.hash('1234', 10)),
+          password: await import('bcryptjs').then(bcrypt => bcrypt.hash('1234', 10)),
           name: '관리자2'
         }
       });
