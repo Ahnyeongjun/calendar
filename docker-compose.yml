@@ -20,7 +20,10 @@ services:
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092,PLAINTEXT_HOST://0.0.0.0:9092
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
 
@@ -46,7 +49,7 @@ services:
       - "3001:3001"
     environment:
       DATABASE_URL: mysql://root:password@mysql:3306/calender
-      KAFKA_BROKERS: kafka:9092
+      KAFKA_BROKERS: kafka:29092
       JWT_SECRET: your_secret_key_here
       KAFKAJS_NO_PARTITIONER_WARNING: 1
     depends_on:
@@ -61,10 +64,10 @@ services:
     ports:
       - "3002:3002"
     environment:
-      KAFKA_BROKERS: kafka:9092
-      DISCORD_BOT_TOKEN: ${DISCORD_BOT_TOKEN:-your_discord_token_here}
-      DISCORD_GUILD_ID: ${DISCORD_GUILD_ID:-your_guild_id_here}
-      DISCORD_CHANNEL_ID: ${DISCORD_CHANNEL_ID:-your_channel_id_here}
+      KAFKA_BROKERS: kafka:29092
+      DISCORD_BOT_TOKEN: "placeholder_token"
+      DISCORD_GUILD_ID: "placeholder_guild"
+      DISCORD_CHANNEL_ID: "placeholder_channel"
       CALENDAR_API_URL: http://calendar-backend:3001
       KAFKAJS_NO_PARTITIONER_WARNING: 1
     depends_on:
@@ -78,7 +81,7 @@ services:
       context: ./FrontEnd
       dockerfile: Dockerfile
       args:
-        VITE_API_URL: http://localhost:3001
+        VITE_API_URL: /api
     ports:
       - "3000:80"
     depends_on:
@@ -95,7 +98,7 @@ services:
     environment:
       DYNAMIC_CONFIG_ENABLED: 'true'
       KAFKA_CLUSTERS_0_NAME: calendar-cluster
-      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
       KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
     depends_on:
       - kafka
@@ -108,7 +111,7 @@ services:
     ports:
       - "8081:9000"
     environment:
-      KAFKA_BROKERCONNECT: kafka:9092
+      KAFKA_BROKERCONNECT: kafka:29092
       JVM_OPTS: "-Xms32M -Xmx64M"
       SERVER_SERVLET_CONTEXTPATH: "/"
     depends_on:

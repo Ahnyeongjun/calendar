@@ -15,7 +15,7 @@ RUN npm install
 COPY . .
 
 # 환경 변수 설정 (빌드 시점)
-ARG VITE_API_URL=http://localhost:3001
+ARG VITE_API_URL=/api
 ENV VITE_API_URL=$VITE_API_URL
 
 # 프로덕션 빌드
