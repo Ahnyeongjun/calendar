@@ -128,8 +128,8 @@ export const ScheduleTableRow = ({
         <div className="flex items-center space-x-1">
           <Clock size={14} className="text-gray-400" />
           <span>
-            {schedule.startTime && schedule.endTime 
-              ? `${formatTime(schedule.startTime)} - ${formatTime(schedule.endTime)}`
+            {schedule.start_date && schedule.end_date 
+              ? `${formatTime(schedule.start_date)} - ${formatTime(schedule.end_date)}`
               : '시간 미설정'
             }
           </span>

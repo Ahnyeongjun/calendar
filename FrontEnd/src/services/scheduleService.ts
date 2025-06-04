@@ -5,8 +5,8 @@ interface ScheduleApiData {
   title: string;
   description?: string;
   date: string;
-  start_time?: string;
-  end_time?: string;
+  start_date?: string;
+  end_date?: string;
   status: string;
   priority: string;
   project_id?: string;
@@ -30,8 +30,8 @@ class ScheduleService {
       title: scheduleData.title,
       description: scheduleData.description,
       date: scheduleData.date,
-      start_time: scheduleData.startTime,
-      end_time: scheduleData.endTime,
+      start_date: scheduleData.start_date,
+      end_date: scheduleData.end_date,
       status: scheduleData.status,
       priority: scheduleData.priority,
       project_id: scheduleData.projectId
@@ -44,8 +44,8 @@ class ScheduleService {
     if (scheduleData.title !== undefined) apiData.title = scheduleData.title;
     if (scheduleData.description !== undefined) apiData.description = scheduleData.description;
     if (scheduleData.date !== undefined) apiData.date = scheduleData.date;
-    if (scheduleData.startTime !== undefined) apiData.start_time = scheduleData.startTime;
-    if (scheduleData.endTime !== undefined) apiData.end_time = scheduleData.endTime;
+    if (scheduleData.start_date !== undefined) apiData.start_date = scheduleData.start_date;
+    if (scheduleData.end_date !== undefined) apiData.end_date = scheduleData.end_date;
     if (scheduleData.status !== undefined) apiData.status = scheduleData.status;
     if (scheduleData.priority !== undefined) apiData.priority = scheduleData.priority;
     if (scheduleData.projectId !== undefined) apiData.project_id = scheduleData.projectId;

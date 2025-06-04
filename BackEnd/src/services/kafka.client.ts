@@ -1,5 +1,6 @@
 import { Kafka, Producer } from 'kafkajs';
 import dotenv from 'dotenv';
+import { logger } from './logger';
 
 dotenv.config();
 
@@ -17,13 +18,15 @@ class KafkaProducer {
   private kafka: Kafka | null = null;
   private producer: Producer | null = null;
   private isConnected = false;
-  private isEnabled: boolean;
+  private isEnabled: boolean; // readonly 제거
 
   constructor() {
     this.isEnabled = process.env.KAFKA_ENABLED === 'true';
-
+    
     if (this.isEnabled) {
       this.initializeKafka();
+    } else {
+      logger.info('Kafka is disabled - running in local mode', 'KAFKA');
     }
   }
 
@@ -46,14 +49,21 @@ class KafkaProducer {
       if (!this.isConnected) {
         await this.producer.connect();
         this.isConnected = true;
+        logger.info('Kafka producer connected successfully', 'KAFKA');
       }
     } catch (error) {
-      this.isEnabled = false;
+      this.isEnabled = false; // 이제 수정 가능
+      logger.warn('Kafka connection failed, switching to local mode', 'KAFKA', error);
     }
   }
 
   async publishEvent(topic: string, key: string, data: KafkaEventData): Promise<void> {
-    if (!this.isEnabled) return;
+    if (!this.isEnabled) {
+      logger.debug(`Local mode: Event skipped - ${topic}:${key} (${data.type}: ${data.title})`, 'KAFKA');
+      return;
+    }
+
+    const startTime = Date.now();
 
     try {
       if (!this.isConnected) {
@@ -71,9 +81,13 @@ class KafkaProducer {
             }),
           }],
         });
+
+        const duration = Date.now() - startTime;
+        logger.kafka(topic, `published event ${data.type}`, true);
+        logger.debug(`Event published to ${topic}: ${data.title} (${duration}ms)`, 'KAFKA');
       }
     } catch (error) {
-      // Silent fail - 카프카 실패가 애플리케이션 실행을 방해하지 않음
+      logger.kafka(topic, `publish event ${data.type}`, false, error);
     }
   }
 
@@ -83,9 +97,19 @@ class KafkaProducer {
     try {
       await this.producer.disconnect();
       this.isConnected = false;
+      logger.info('Kafka producer disconnected', 'KAFKA');
     } catch (error) {
-      // Silent fail
+      logger.warn('Error disconnecting Kafka producer', 'KAFKA', error);
     }
+  }
+
+  // 현재 상태를 확인할 수 있는 getter 메서드들
+  get enabled(): boolean {
+    return this.isEnabled;
+  }
+
+  get connected(): boolean {
+    return this.isConnected;
   }
 }
 

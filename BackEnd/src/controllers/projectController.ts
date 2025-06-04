@@ -1,94 +1,147 @@
 import { Request, Response } from 'express';
 import ProjectModel from '../models/Project';
+import { asyncHandler, ValidationError, NotFoundError } from '../middleware/errorHandler';
+import ValidationService from '../services/validationService';
 
-interface ProjectData {
+interface ProjectCreateData {
   name: string;
-  description: string;
+  description: string | null;
   color: string;
 }
 
-const projectController = {
-  async getAllProjects(_req: Request, res: Response): Promise<void> {
-    try {
-      const projects = await ProjectModel.findAll();
-      res.json({ projects });
-    } catch (error) {
-      res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+interface ProjectUpdateData {
+  name?: string;
+  description?: string | null;
+  color?: string;
+}
+
+class ProjectController {
+  // 헬퍼 메서드 - 문자열을 null로 변환
+  private static sanitizeStringToNull(value?: string): string | null {
+    if (!value || value.trim() === '') {
+      return null;
     }
-  },
-
-  async getProject(req: Request, res: Response): Promise<void> {
-    try {
-      const { id } = req.params;
-      const project = await ProjectModel.findById(id);
-
-      if (!project) {
-        res.status(404).json({ message: '프로젝트를 찾을 수 없습니다.' });
-        return;
-      }
-
-      res.json({ project });
-    } catch (error) {
-      res.status(500).json({ message: '서버 오류가 발생했습니다.' });
-    }
-  },
-
-  async createProject(req: Request, res: Response): Promise<void> {
-    try {
-      const { name, description, color }: ProjectData = req.body;
-
-      if (!name || !color) {
-        res.status(400).json({ message: '이름과 색상은 필수입니다.' });
-        return;
-      }
-
-      const newProject = await ProjectModel.create({ name, description, color });
-
-      res.status(201).json({ project: newProject });
-    } catch (error) {
-      res.status(500).json({ message: '서버 오류가 발생했습니다.' });
-    }
-  },
-
-  async updateProject(req: Request, res: Response): Promise<void> {
-    try {
-      const { id } = req.params;
-      const { name, description, color }: ProjectData = req.body;
-
-      if (!name || !color) {
-        res.status(400).json({ message: '이름과 색상은 필수입니다.' });
-        return;
-      }
-
-      const updatedProject = await ProjectModel.update(id, { name, description, color });
-
-      if (!updatedProject) {
-        res.status(404).json({ message: '프로젝트를 찾을 수 없습니다.' });
-        return;
-      }
-
-      res.json({ project: updatedProject });
-    } catch (error) {
-      res.status(500).json({ message: '서버 오류가 발생했습니다.' });
-    }
-  },
-
-  async deleteProject(req: Request, res: Response): Promise<void> {
-    try {
-      const { id } = req.params;
-
-      const result = await ProjectModel.delete(id);
-
-      if (!result) {
-        res.status(404).json({ message: '프로젝트를 찾을 수 없습니다.' });
-        return;
-      }
-
-      res.json({ message: '프로젝트가 삭제되었습니다.' });
-    } catch (error) {
-      res.status(500).json({ message: '서버 오류가 발생했습니다.' });
-    }
+    return value.trim();
   }
-};
 
-export default projectController;
+  static getAllProjects = asyncHandler(async (_req: Request, res: Response): Promise<void> => {
+    const projects = await ProjectModel.findAll();
+    
+    res.json({ 
+      success: true,
+      projects 
+    });
+  });
+  
+  static getProject = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    ValidationService.validateId(req.params.id);
+    
+    const project = await ProjectModel.findById(req.params.id);
+    
+    if (!project) {
+      throw new NotFoundError('프로젝트를 찾을 수 없습니다.');
+    }
+    
+    res.json({ 
+      success: true,
+      project 
+    });
+  });
+  
+  static createProject = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { name, description, color } = req.body;
+    
+    // 입력 데이터 검증
+    ValidationService.validateProjectData({ name, description, color });
+    
+    // 중복 이름 검증
+    const existingProject = await ProjectModel.findByNameCaseInsensitive(name.trim());
+    if (existingProject) {
+      throw new ValidationError('이미 존재하는 프로젝트 이름입니다.');
+    }
+    
+    const projectData: ProjectCreateData = {
+      name: name.trim(),
+      description: ProjectController.sanitizeStringToNull(description),
+      color
+    };
+    
+    const newProject = await ProjectModel.create(projectData);
+    
+    res.status(201).json({ 
+      success: true,
+      project: newProject 
+    });
+  });
+  
+  static updateProject = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    ValidationService.validateId(req.params.id);
+    
+    const { id } = req.params;
+    const { name, description, color } = req.body;
+    
+    // 입력 데이터 검증
+    ValidationService.validateProjectData({ name, description, color }, true);
+    
+    // 프로젝트 존재 확인
+    const existingProject = await ProjectModel.findById(id);
+    if (!existingProject) {
+      throw new NotFoundError('프로젝트를 찾을 수 없습니다.');
+    }
+    
+    // 이름 중복 검증 (다른 프로젝트와)
+    if (name && name.trim() !== existingProject.name) {
+      const duplicateProject = await ProjectModel.findByNameCaseInsensitive(name.trim());
+      if (duplicateProject && duplicateProject.id !== id) {
+        throw new ValidationError('이미 존재하는 프로젝트 이름입니다.');
+      }
+    }
+    
+    const updateData: ProjectUpdateData = {};
+    if (name !== undefined) updateData.name = name.trim();
+    if (description !== undefined) updateData.description = ProjectController.sanitizeStringToNull(description);
+    if (color !== undefined) updateData.color = color;
+    
+    const updatedProject = await ProjectModel.update(id, updateData);
+    
+    if (!updatedProject) {
+      throw new NotFoundError('프로젝트를 찾을 수 없습니다.');
+    }
+    
+    res.json({ 
+      success: true,
+      project: updatedProject 
+    });
+  });
+  
+  static deleteProject = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    ValidationService.validateId(req.params.id);
+    
+    const { id } = req.params;
+    
+    // 프로젝트 존재 확인
+    const existingProject = await ProjectModel.findById(id);
+    if (!existingProject) {
+      throw new NotFoundError('프로젝트를 찾을 수 없습니다.');
+    }
+    
+    // 기본 프로젝트 삭제 방지
+    const protectedProjects = ['personal', 'work', 'study'];
+    if (protectedProjects.includes(id)) {
+      throw new ValidationError('기본 프로젝트는 삭제할 수 없습니다.');
+    }
+    
+    const result = await ProjectModel.delete(id);
+    
+    if (!result) {
+      throw new NotFoundError('프로젝트를 찾을 수 없습니다.');
+    }
+    
+    res.json({ 
+      success: true,
+      message: '프로젝트가 삭제되었습니다.' 
+    });
+  });
+}
+
+export default ProjectController;

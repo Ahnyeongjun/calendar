@@ -11,6 +11,10 @@ interface ScheduleFilters {
   userId?: string;
 }
 
+// Prisma 생성/업데이트에 사용할 타입들
+type ScheduleCreateInput = Omit<Schedule, 'id' | 'createdAt' | 'updatedAt'>;
+type ScheduleUpdateInput = Partial<ScheduleCreateInput>;
+
 class ScheduleModel {
   static async findAll(filters: ScheduleFilters = {}): Promise<Schedule[]> {
     try {
@@ -93,7 +97,7 @@ class ScheduleModel {
     }
   }
   
-  static async create(scheduleData: Omit<Schedule, 'id' | 'createdAt' | 'updatedAt'>): Promise<Schedule> {
+  static async create(scheduleData: ScheduleCreateInput): Promise<Schedule> {
     try {
       return await prisma.schedule.create({
         data: scheduleData,
@@ -114,7 +118,7 @@ class ScheduleModel {
     }
   }
   
-  static async update(id: string, scheduleData: Partial<Omit<Schedule, 'id' | 'createdAt' | 'updatedAt'>>): Promise<Schedule | null> {
+  static async update(id: string, scheduleData: ScheduleUpdateInput): Promise<Schedule | null> {
     try {
       // 일정 존재 확인
       const existingSchedule = await this.findById(id);
@@ -165,3 +169,4 @@ class ScheduleModel {
 }
 
 export default ScheduleModel;
+export type { ScheduleCreateInput, ScheduleUpdateInput };

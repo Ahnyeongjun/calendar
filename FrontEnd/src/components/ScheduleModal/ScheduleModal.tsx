@@ -25,8 +25,8 @@ const ScheduleModal = ({ isOpen, onClose, onSave, schedule, selectedDate }: Sche
     title: '',
     description: '',
     date: selectedDate ? toDateString(selectedDate) : toDateString(new Date()),
-    startTime: '09:00',
-    endTime: '10:00',
+    start_date: '09:00',
+    end_date: '10:00',
     projectId: undefined,
     priority: 'medium',
     status: 'planned'
@@ -36,15 +36,13 @@ const ScheduleModal = ({ isOpen, onClose, onSave, schedule, selectedDate }: Sche
     if (schedule) {
       // Backend에서 받은 데이터를 폼 데이터로 변환
       const scheduleDate = new Date(schedule.date);
-      const startTime = schedule.startTime ? new Date(schedule.startTime).toTimeString().slice(0, 5) : undefined;
-      const endTime = schedule.endTime ? new Date(schedule.endTime).toTimeString().slice(0, 5) : undefined;
       
       setFormData({
         title: schedule.title,
         description: schedule.description || '',
         date: toDateString(scheduleDate),
-        startTime: startTime || '09:00',
-        endTime: endTime || '10:00',
+        start_date: schedule.start_date || '09:00',
+        end_date: schedule.end_date || '10:00',
         projectId: schedule.projectId,
         priority: schedule.priority,
         status: schedule.status
@@ -60,8 +58,8 @@ const ScheduleModal = ({ isOpen, onClose, onSave, schedule, selectedDate }: Sche
         title: '',
         description: '',
         date: toDateString(new Date()),
-        startTime: '09:00',
-        endTime: '10:00',
+        start_date: '09:00',
+        end_date: '10:00',
         projectId: undefined,
         priority: 'medium',
         status: 'planned'
@@ -91,8 +89,8 @@ const ScheduleModal = ({ isOpen, onClose, onSave, schedule, selectedDate }: Sche
       title: '',
       description: '',
       date: toDateString(new Date()),
-      startTime: '09:00',
-      endTime: '10:00',
+      start_date: '09:00',
+      end_date: '10:00',
       projectId: undefined,
       priority: 'medium',
       status: 'planned'
@@ -152,10 +150,10 @@ const ScheduleModal = ({ isOpen, onClose, onSave, schedule, selectedDate }: Sche
             <div className="space-y-2">
               <Label>시간</Label>
               <TimeRangePicker
-                startTime={formData.startTime}
-                endTime={formData.endTime}
-                onStartTimeChange={(startTime) => updateFormData({ startTime })}
-                onEndTimeChange={(endTime) => updateFormData({ endTime })}
+                start_date={formData.start_date}
+                end_date={formData.end_date}
+                onStart_dateChange={(start_date) => updateFormData({ start_date })}
+                onEnd_dateChange={(end_date) => updateFormData({ end_date })}
               />
             </div>
           </div>

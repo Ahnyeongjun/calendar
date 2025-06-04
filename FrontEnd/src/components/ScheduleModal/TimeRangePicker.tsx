@@ -1,31 +1,31 @@
 import { Input } from '@/components/ui/input';
 
 interface TimeRangePickerProps {
-  startTime: string;
-  endTime: string;
-  onStartTimeChange: (time: string) => void;
-  onEndTimeChange: (time: string) => void;
+  start_date: string;
+  end_date: string;
+  onStart_dateChange: (time: string) => void;
+  onEnd_dateChange: (time: string) => void;
 }
 
 export const TimeRangePicker = ({
-  startTime,
-  endTime,
-  onStartTimeChange,
-  onEndTimeChange
+  start_date,
+  end_date,
+  onStart_dateChange,
+  onEnd_dateChange
 }: TimeRangePickerProps) => {
   return (
     <div className="flex items-center space-x-2">
       <Input
         type="time"
-        value={startTime}
-        onChange={(e) => onStartTimeChange(e.target.value)}
+        value={start_date}
+        onChange={(e) => onStart_dateChange(e.target.value)}
         className="flex-1"
       />
       <span className="text-gray-500">-</span>
       <Input
         type="time"
-        value={endTime}
-        onChange={(e) => onEndTimeChange(e.target.value)}
+        value={end_date}
+        onChange={(e) => onEnd_dateChange(e.target.value)}
         className="flex-1"
       />
     </div>

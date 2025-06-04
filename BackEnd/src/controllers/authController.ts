@@ -1,5 +1,7 @@
 import { Request, Response } from 'express';
 import UserModel from '../models/User';
+import { asyncHandler, UnauthorizedError } from '../middleware/errorHandler';
+import ValidationService from '../services/validationService';
 
 interface AuthenticatedRequest extends Request {
   user?: {
@@ -9,48 +11,42 @@ interface AuthenticatedRequest extends Request {
   };
 }
 
-const authController = {
-  async login(req: Request, res: Response): Promise<void> {
-    try {
-      const { username, password } = req.body;
-      
-      if (!username || !password) {
-        res.status(400).json({ message: '사용자명과 비밀번호를 입력해주세요.' });
-        return;
-      }
-      
-      const authResult = await UserModel.authenticate(username, password);
-      
-      if (!authResult) {
-        res.status(401).json({ message: '사용자명 또는 비밀번호가 올바르지 않습니다.' });
-        return;
-      }
-      
-      res.json(authResult);
-    } catch (error) {
-      res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+class AuthController {
+  static login = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { username, password } = req.body;
+    
+    // 입력 데이터 검증
+    ValidationService.validateLoginData({ username, password });
+    
+    // 사용자 인증
+    const authResult = await UserModel.authenticate(username, password);
+    
+    if (!authResult) {
+      throw new UnauthorizedError('사용자명 또는 비밀번호가 올바르지 않습니다.');
     }
-  },
+    
+    res.json({
+      success: true,
+      ...authResult
+    });
+  });
   
-  async getProfile(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      if (!req.user) {
-        res.status(401).json({ message: '인증이 필요합니다.' });
-        return;
-      }
-      
-      const user = await UserModel.findById(req.user.id);
-      
-      if (!user) {
-        res.status(404).json({ message: '사용자를 찾을 수 없습니다.' });
-        return;
-      }
-      
-      res.json({ user });
-    } catch (error) {
-      res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+  static getProfile = asyncHandler(async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    if (!req.user) {
+      throw new UnauthorizedError();
     }
-  }
-};
+    
+    const user = await UserModel.findById(req.user.id);
+    
+    if (!user) {
+      throw new UnauthorizedError('사용자를 찾을 수 없습니다.');
+    }
+    
+    res.json({ 
+      success: true,
+      user 
+    });
+  });
+}
 
-export default authController;
+export default AuthController;

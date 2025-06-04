@@ -1,14 +1,14 @@
 import { Router } from 'express';
-import authController from '../controllers/authController';
+import AuthController from '../controllers/authController';
 import auth from '../middleware/auth';
 
 const router = Router();
 
 // 로그인
-router.post('/login', authController.login);
+router.post('/login', AuthController.login);
 
 // 사용자 정보 조회 (인증 필요)
-router.get('/me', auth, authController.getProfile);
-router.get('/profile', auth, authController.getProfile);
+router.get('/me', auth, AuthController.getProfile);
+router.get('/profile', auth, AuthController.getProfile);
 
 export default router;

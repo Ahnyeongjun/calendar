@@ -12,8 +12,8 @@ export interface Schedule {
   title: string;
   description?: string;
   date: string; // ISO date string
-  startTime?: string; // ISO datetime string
-  endTime?: string; // ISO datetime string
+  start_date?: string; // HH:mm format
+  end_date?: string; // HH:mm format
   status: 'planned' | 'in_progress' | 'completed';
   priority: 'low' | 'medium' | 'high';
   projectId?: string;
@@ -33,8 +33,8 @@ export interface ScheduleFormData {
   title: string;
   description?: string;
   date: string; // ISO date string
-  startTime?: string; // HH:mm format
-  endTime?: string; // HH:mm format
+  start_date?: string; // HH:mm format
+  end_date?: string; // HH:mm format
   status: 'planned' | 'in_progress' | 'completed';
   priority: 'low' | 'medium' | 'high';
   projectId?: string;

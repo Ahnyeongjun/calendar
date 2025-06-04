@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+import { logger } from '../services/logger';
 
 const prisma = new PrismaClient({
   log: process.env.NODE_ENV === 'development' ? ['error'] : [],
@@ -8,9 +9,10 @@ const prisma = new PrismaClient({
 async function testConnection(): Promise<boolean> {
   try {
     await prisma.$queryRaw`SELECT 1`;
+    logger.info('Database connection established successfully', 'DATABASE');
     return true;
   } catch (error) {
-    console.error('Database connection failed:', error);
+    logger.error('Database connection failed', 'DATABASE', error);
     return false;
   }
 }
@@ -19,8 +21,9 @@ async function seedDatabase(): Promise<void> {
   try {
     await seedUsers();
     await seedProjects();
+    logger.info('Database seeding completed successfully', 'DATABASE');
   } catch (error) {
-    console.error('Database seeding failed:', error);
+    logger.error('Database seeding failed', 'DATABASE', error);
     throw error;
   }
 }
@@ -43,6 +46,7 @@ async function seedUsers(): Promise<void> {
           password: await bcrypt.hash('1234', 10)
         }
       });
+      logger.debug(`User created: ${user.username}`, 'DATABASE');
     }
   }
 }
@@ -61,6 +65,7 @@ async function seedProjects(): Promise<void> {
 
     if (!exists) {
       await prisma.project.create({ data: project });
+      logger.debug(`Project created: ${project.name}`, 'DATABASE');
     }
   }
 }

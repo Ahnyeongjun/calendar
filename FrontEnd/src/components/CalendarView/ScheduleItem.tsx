@@ -45,10 +45,10 @@ export const ScheduleItem = ({
 
   const getTimeDisplay = () => {
     console.log(schedule);
-    if (schedule.startTime && schedule.endTime) {
-      return `${formatTime(schedule.startTime)} - ${formatTime(schedule.endTime)}`;
-    } else if (schedule.startTime) {
-      return formatTime(schedule.startTime);
+    if (schedule.start_date && schedule.end_date) {
+      return `${formatTime(schedule.start_date)} - ${formatTime(schedule.end_date)}`;
+    } else if (schedule.start_date) {
+      return formatTime(schedule.start_date);
     } else {
       return '시간 미설정';
     }
