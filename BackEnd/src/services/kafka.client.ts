@@ -1,57 +1,59 @@
-import { Kafka } from 'kafkajs';
+import { Kafka, Producer } from 'kafkajs';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
-class SimpleKafkaProducer {
+interface KafkaEventData {
+  id: string;
+  title: string;
+  description?: string;
+  startDate: string;
+  endDate: string;
+  userId: string;
+  type: 'CREATE' | 'UPDATE' | 'DELETE';
+}
+
+class KafkaProducer {
   private kafka: Kafka | null = null;
-  private producer: any = null;
+  private producer: Producer | null = null;
   private isConnected = false;
-  private isEnabled = false;
+  private isEnabled: boolean;
 
   constructor() {
-    // 환경 변수로 카프카 사용 여부 결정
     this.isEnabled = process.env.KAFKA_ENABLED === 'true';
-    
+
     if (this.isEnabled) {
-      this.kafka = new Kafka({
-        clientId: 'calendar-backend',
-        brokers: [process.env.KAFKA_BROKERS || 'localhost:9092'],
-        retry: {
-          initialRetryTime: 100,
-          retries: 3,
-        },
-      });
-      this.producer = this.kafka.producer();
+      this.initializeKafka();
     }
   }
 
-  async connect() {
-    if (!this.isEnabled) {
-      console.log('ℹ️ Kafka is disabled - running in local mode');
-      return;
-    }
+  private initializeKafka(): void {
+    this.kafka = new Kafka({
+      clientId: 'calendar-backend',
+      brokers: [process.env.KAFKA_BROKERS || 'localhost:9092'],
+      retry: {
+        initialRetryTime: 100,
+        retries: 3,
+      },
+    });
+    this.producer = this.kafka.producer();
+  }
+
+  async connect(): Promise<void> {
+    if (!this.isEnabled || !this.producer) return;
 
     try {
-      if (!this.isConnected && this.producer) {
+      if (!this.isConnected) {
         await this.producer.connect();
         this.isConnected = true;
-        console.log('✅ Backend Kafka producer connected');
       }
     } catch (error) {
-      console.warn('⚠️ Kafka connection failed, notifications will be disabled:', error);
-      this.isEnabled = false; // 연결 실패 시 비활성화
+      this.isEnabled = false;
     }
   }
 
-  async publishEvent(topic: string, key: string, data: any) {
-    if (!this.isEnabled) {
-      console.log(`🔕 Local mode: Kafka event skipped - ${topic}:${key}`, {
-        title: data.title,
-        type: data.type
-      });
-      return;
-    }
+  async publishEvent(topic: string, key: string, data: KafkaEventData): Promise<void> {
+    if (!this.isEnabled) return;
 
     try {
       if (!this.isConnected) {
@@ -61,44 +63,37 @@ class SimpleKafkaProducer {
       if (this.isConnected && this.producer) {
         await this.producer.send({
           topic,
-          messages: [
-            {
-              key,
-              value: JSON.stringify({
-                ...data,
-                timestamp: new Date().toISOString(),
-              }),
-            },
-          ],
+          messages: [{
+            key,
+            value: JSON.stringify({
+              ...data,
+              timestamp: new Date().toISOString(),
+            }),
+          }],
         });
-        console.log(`📤 Event published to ${topic}: ${data.title || key}`);
       }
     } catch (error) {
-      console.warn('⚠️ Failed to publish event to Kafka:', error);
-      // Kafka 실패해도 앱 동작은 계속되도록
+      // Silent fail - 카프카 실패가 애플리케이션 실행을 방해하지 않음
     }
   }
 
-  async disconnect() {
-    if (!this.isEnabled || !this.isConnected || !this.producer) {
-      return;
-    }
+  async disconnect(): Promise<void> {
+    if (!this.isEnabled || !this.isConnected || !this.producer) return;
 
     try {
       await this.producer.disconnect();
       this.isConnected = false;
-      console.log('✅ Backend Kafka producer disconnected');
     } catch (error) {
-      console.warn('⚠️ Error disconnecting Kafka producer:', error);
+      // Silent fail
     }
   }
 }
 
-export const kafkaProducer = new SimpleKafkaProducer();
+export const kafkaProducer = new KafkaProducer();
 
-// 애플리케이션 시작 시 연결 (활성화된 경우에만)
-kafkaProducer.connect().catch(console.warn);
+// 서버 시작 시 연결
+kafkaProducer.connect();
 
-// 애플리케이션 종료 시 정리
+// 서버 종료 시 정리
 process.on('SIGTERM', () => kafkaProducer.disconnect());
 process.on('SIGINT', () => kafkaProducer.disconnect());

@@ -8,7 +8,6 @@ interface AuthState {
   token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  // 라우터 인스턴스 저장
   navigate: ((to: string, options?: { replace?: boolean }) => void) | null;
   
   // Actions
@@ -26,36 +25,30 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       token: null,
       isAuthenticated: false,
-      isLoading: true, // 초기 로딩 상태
+      isLoading: true,
       navigate: null,
       
-      setNavigate: (navigate) => {
-        set({ navigate });
-      },
+      setNavigate: (navigate) => set({ navigate }),
 
-      setLoading: (loading) => {
-        set({ isLoading: loading });
-      },
+      setLoading: (loading) => set({ isLoading: loading }),
       
-      login: async (username: string, password: string) => {
+      login: async (username: string, password: string): Promise<boolean> => {
         try {
+          set({ isLoading: true });
+          
           const authResult: AuthResult = await authService.login({ username, password });
           
           set({ 
             user: authResult.user, 
             token: authResult.token,
-            isAuthenticated: true 
+            isAuthenticated: true,
+            isLoading: false
           });
           
-          // 로그인 성공 시 메인 페이지로 이동
-          const { navigate } = get();
-          if (navigate) {
-            navigate('/', { replace: true });
-          }
-          
+          get().navigate?.('/', { replace: true });
           return true;
         } catch (error) {
-          console.error('Login failed:', error);
+          set({ isLoading: false });
           return false;
         }
       },
@@ -68,50 +61,39 @@ export const useAuthStore = create<AuthState>()(
           isAuthenticated: false 
         });
         
-        // 로그아웃 시 로그인 페이지로 이동
-        const { navigate } = get();
-        if (navigate) {
-          navigate('/login', { replace: true });
-        }
+        get().navigate?.('/login', { replace: true });
       },
       
-      initializeAuth: async () => {
+      initializeAuth: async (): Promise<void> => {
         try {
-          const token = authService.getToken();
+          const isValid = await authService.validateSession();
           
-          if (!token || !authService.isAuthenticated()) {
+          if (!isValid) {
             set({ isLoading: false, isAuthenticated: false });
             return;
           }
           
-          // 토큰이 유효하면 사용자 정보 가져오기
-          try {
-            const { user } = await authService.getProfile();
-            set({ 
-              user, 
-              token,
-              isAuthenticated: true, 
-              isLoading: false 
-            });
-          } catch (error) {
-            // 토큰이 유효하지 않은 경우 로그아웃
-            authService.logout();
-            set({ 
-              user: null, 
-              token: null,
-              isAuthenticated: false, 
-              isLoading: false 
-            });
-          }
+          const { user } = await authService.getProfile();
+          const token = authService.getToken();
+          
+          set({ 
+            user, 
+            token,
+            isAuthenticated: true, 
+            isLoading: false 
+          });
         } catch (error) {
-          console.error('Auth initialization failed:', error);
-          set({ isLoading: false, isAuthenticated: false });
+          authService.logout();
+          set({ 
+            user: null, 
+            token: null,
+            isAuthenticated: false, 
+            isLoading: false 
+          });
         }
       },
       
-      updateUser: (user: User) => {
-        set({ user });
-      }
+      updateUser: (user: User) => set({ user })
     }),
     {
       name: 'auth-storage',
@@ -121,10 +103,7 @@ export const useAuthStore = create<AuthState>()(
         isAuthenticated: state.isAuthenticated 
       }),
       onRehydrateStorage: () => (state) => {
-        // persist 데이터 복원 완료 시 인증 상태 확인
-        if (state) {
-          state.initializeAuth();
-        }
+        state?.initializeAuth();
       }
     }
   )

@@ -16,6 +16,17 @@ export interface LoginRequest {
   password: string;
 }
 
+export interface LoginFormData {
+  username: string;
+  password: string;
+  rememberMe?: boolean;
+}
+
+export interface AuthError {
+  message: string;
+  field?: string;
+}
+
 export interface AuthContextType {
   user: User | null;
   token: string | null;
@@ -23,4 +34,13 @@ export interface AuthContextType {
   logout: () => void;
   isAuthenticated: boolean;
   isLoading: boolean;
+}
+
+// JWT Payload 타입
+export interface JwtPayload {
+  id: string;
+  username: string;
+  name: string;
+  iat: number;
+  exp: number;
 }

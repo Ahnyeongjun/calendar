@@ -11,14 +11,23 @@ import LoginPage from "./pages/LoginPage";
 import MainPage from "./pages/MainPage";
 import NotFound from "./pages/NotFound";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      staleTime: 5 * 60 * 1000, // 5분
+      refetchOnWindowFocus: false,
+    },
+    mutations: {
+      retry: 1,
+    },
+  },
+});
 
-// 내부 라우터 컴포넌트
 const AppRoutes = () => {
   const navigate = useNavigate();
   const { setNavigate, initializeAuth } = useAuthStore();
 
-  // Store에 navigate 함수 등록 및 인증 초기화
   useEffect(() => {
     setNavigate(navigate);
     initializeAuth();
@@ -39,11 +48,11 @@ const AppRoutes = () => {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <Toaster />
-      <Sonner />
       <BrowserRouter>
         <AppRoutes />
       </BrowserRouter>
+      <Toaster />
+      <Sonner />
     </TooltipProvider>
   </QueryClientProvider>
 );

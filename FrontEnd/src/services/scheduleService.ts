@@ -1,36 +1,32 @@
 import ApiService from './api';
 import { Schedule, ScheduleFormData, ScheduleFilters, SchedulesResponse, ScheduleResponse } from '@/types/schedule';
 
-export const scheduleService = {
-  async getAllSchedules(filters?: ScheduleFilters): Promise<Schedule[]> {
-    let endpoint = '/schedules';
+interface ScheduleApiData {
+  title: string;
+  description?: string;
+  date: string;
+  start_time?: string;
+  end_time?: string;
+  status: string;
+  priority: string;
+  project_id?: string;
+}
+
+class ScheduleService {
+  private buildQueryString(filters: ScheduleFilters): string {
+    const params = new URLSearchParams();
     
-    if (filters) {
-      const params = new URLSearchParams();
-      Object.entries(filters).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          params.append(key, value.toString());
-        }
-      });
-      
-      const queryString = params.toString();
-      if (queryString) {
-        endpoint += `?${queryString}`;
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        params.append(key, value.toString());
       }
-    }
+    });
     
-    const response = await ApiService.get<SchedulesResponse>(endpoint);
-    return response.schedules;
-  },
+    return params.toString();
+  }
 
-  async getSchedule(id: string): Promise<Schedule> {
-    const response = await ApiService.get<ScheduleResponse>(`/schedules/${id}`);
-    return response.schedule;
-  },
-
-  async createSchedule(scheduleData: ScheduleFormData): Promise<Schedule> {
-    // Backend API 형식에 맞게 데이터 변환
-    const apiData = {
+  private transformToApiData(scheduleData: ScheduleFormData): ScheduleApiData {
+    return {
       title: scheduleData.title,
       description: scheduleData.description,
       date: scheduleData.date,
@@ -40,29 +36,57 @@ export const scheduleService = {
       priority: scheduleData.priority,
       project_id: scheduleData.projectId
     };
+  }
+
+  private transformToPartialApiData(scheduleData: Partial<ScheduleFormData>): Partial<ScheduleApiData> {
+    const apiData: Partial<ScheduleApiData> = {};
     
+    if (scheduleData.title !== undefined) apiData.title = scheduleData.title;
+    if (scheduleData.description !== undefined) apiData.description = scheduleData.description;
+    if (scheduleData.date !== undefined) apiData.date = scheduleData.date;
+    if (scheduleData.startTime !== undefined) apiData.start_time = scheduleData.startTime;
+    if (scheduleData.endTime !== undefined) apiData.end_time = scheduleData.endTime;
+    if (scheduleData.status !== undefined) apiData.status = scheduleData.status;
+    if (scheduleData.priority !== undefined) apiData.priority = scheduleData.priority;
+    if (scheduleData.projectId !== undefined) apiData.project_id = scheduleData.projectId;
+    
+    return apiData;
+  }
+
+  async getAllSchedules(filters?: ScheduleFilters): Promise<Schedule[]> {
+    let endpoint = '/schedules';
+    
+    if (filters) {
+      const queryString = this.buildQueryString(filters);
+      if (queryString) {
+        endpoint += `?${queryString}`;
+      }
+    }
+    
+    const response = await ApiService.get<SchedulesResponse>(endpoint);
+    return response.schedules || [];
+  }
+
+  async getSchedule(id: string): Promise<Schedule> {
+    const response = await ApiService.get<ScheduleResponse>(`/schedules/${id}`);
+    return response.schedule;
+  }
+
+  async createSchedule(scheduleData: ScheduleFormData): Promise<Schedule> {
+    const apiData = this.transformToApiData(scheduleData);
     const response = await ApiService.post<ScheduleResponse>('/schedules', apiData);
     return response.schedule;
-  },
+  }
 
   async updateSchedule(id: string, scheduleData: Partial<ScheduleFormData>): Promise<Schedule> {
-    // Backend API 형식에 맞게 데이터 변환
-    const apiData = {
-      ...(scheduleData.title && { title: scheduleData.title }),
-      ...(scheduleData.description !== undefined && { description: scheduleData.description }),
-      ...(scheduleData.date && { date: scheduleData.date }),
-      ...(scheduleData.startTime !== undefined && { start_time: scheduleData.startTime }),
-      ...(scheduleData.endTime !== undefined && { end_time: scheduleData.endTime }),
-      ...(scheduleData.status && { status: scheduleData.status }),
-      ...(scheduleData.priority && { priority: scheduleData.priority }),
-      ...(scheduleData.projectId !== undefined && { project_id: scheduleData.projectId })
-    };
-    
+    const apiData = this.transformToPartialApiData(scheduleData);
     const response = await ApiService.put<ScheduleResponse>(`/schedules/${id}`, apiData);
     return response.schedule;
-  },
+  }
 
   async deleteSchedule(id: string): Promise<void> {
     await ApiService.delete(`/schedules/${id}`);
   }
-};
+}
+
+export const scheduleService = new ScheduleService();

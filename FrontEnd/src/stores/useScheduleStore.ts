@@ -12,12 +12,17 @@ interface ScheduleState {
   addSchedule: (schedule: ScheduleFormData) => Promise<Schedule>;
   updateSchedule: (id: string, updates: Partial<ScheduleFormData>) => Promise<Schedule>;
   deleteSchedule: (id: string) => Promise<void>;
+  
+  // Getters
   getSchedule: (id: string) => Schedule | undefined;
   getSchedulesByDate: (date: string) => Schedule[];
   getSchedulesByProject: (projectId: string) => Schedule[];
+  
+  // State setters
   setSchedules: (schedules: Schedule[]) => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
+  clearError: () => void;
 }
 
 export const useScheduleStore = create<ScheduleState>((set, get) => ({
@@ -28,6 +33,7 @@ export const useScheduleStore = create<ScheduleState>((set, get) => ({
   setSchedules: (schedules) => set({ schedules }),
   setLoading: (isLoading) => set({ isLoading }),
   setError: (error) => set({ error }),
+  clearError: () => set({ error: null }),
   
   fetchSchedules: async (filters) => {
     try {
@@ -35,9 +41,11 @@ export const useScheduleStore = create<ScheduleState>((set, get) => ({
       const schedules = await scheduleService.getAllSchedules(filters);
       set({ schedules, isLoading: false });
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : '일정을 불러오는데 실패했습니다.';
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : '일정을 불러오는데 실패했습니다.';
       set({ error: errorMessage, isLoading: false });
-      console.error('Failed to fetch schedules:', error);
+      throw error;
     }
   },
   
@@ -53,9 +61,10 @@ export const useScheduleStore = create<ScheduleState>((set, get) => ({
       
       return newSchedule;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : '일정 생성에 실패했습니다.';
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : '일정 생성에 실패했습니다.';
       set({ error: errorMessage, isLoading: false });
-      console.error('Failed to create schedule:', error);
       throw error;
     }
   },
@@ -74,9 +83,10 @@ export const useScheduleStore = create<ScheduleState>((set, get) => ({
       
       return updatedSchedule;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : '일정 수정에 실패했습니다.';
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : '일정 수정에 실패했습니다.';
       set({ error: errorMessage, isLoading: false });
-      console.error('Failed to update schedule:', error);
       throw error;
     }
   },
@@ -91,9 +101,10 @@ export const useScheduleStore = create<ScheduleState>((set, get) => ({
         isLoading: false
       }));
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : '일정 삭제에 실패했습니다.';
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : '일정 삭제에 실패했습니다.';
       set({ error: errorMessage, isLoading: false });
-      console.error('Failed to delete schedule:', error);
       throw error;
     }
   },
@@ -103,12 +114,15 @@ export const useScheduleStore = create<ScheduleState>((set, get) => ({
   },
   
   getSchedulesByDate: (date) => {
+    const targetDate = date.split('T')[0];
     return get().schedules.filter(schedule => 
-      schedule.date.split('T')[0] === date.split('T')[0]
+      schedule.date.split('T')[0] === targetDate
     );
   },
   
   getSchedulesByProject: (projectId) => {
-    return get().schedules.filter(schedule => schedule.projectId === projectId);
+    return get().schedules.filter(schedule => 
+      schedule.projectId === projectId
+    );
   }
 }));

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { Project } from '@/types/schedule';
-import { projectService } from '@/services/projectService';
+import { projectService, ProjectCreateData, ProjectUpdateData } from '@/services/projectService';
 
 interface ProjectState {
   projects: Project[];
@@ -9,13 +9,19 @@ interface ProjectState {
   
   // Actions
   fetchProjects: () => Promise<void>;
-  addProject: (project: Omit<Project, 'id' | 'createdAt' | 'updatedAt'>) => Promise<Project>;
-  updateProject: (id: string, updates: Partial<Omit<Project, 'id' | 'createdAt' | 'updatedAt'>>) => Promise<Project>;
+  addProject: (project: ProjectCreateData) => Promise<Project>;
+  updateProject: (id: string, updates: ProjectUpdateData) => Promise<Project>;
   deleteProject: (id: string) => Promise<void>;
+  
+  // Getters
   getProject: (id: string) => Project | undefined;
+  getProjectByName: (name: string) => Project | undefined;
+  
+  // State setters
   setProjects: (projects: Project[]) => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
+  clearError: () => void;
 }
 
 export const useProjectStore = create<ProjectState>((set, get) => ({
@@ -26,6 +32,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   setProjects: (projects) => set({ projects }),
   setLoading: (isLoading) => set({ isLoading }),
   setError: (error) => set({ error }),
+  clearError: () => set({ error: null }),
   
   fetchProjects: async () => {
     try {
@@ -33,9 +40,11 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       const projects = await projectService.getAllProjects();
       set({ projects, isLoading: false });
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : '프로젝트를 불러오는데 실패했습니다.';
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : '프로젝트를 불러오는데 실패했습니다.';
       set({ error: errorMessage, isLoading: false });
-      console.error('Failed to fetch projects:', error);
+      throw error;
     }
   },
   
@@ -51,9 +60,10 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       
       return newProject;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : '프로젝트 생성에 실패했습니다.';
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : '프로젝트 생성에 실패했습니다.';
       set({ error: errorMessage, isLoading: false });
-      console.error('Failed to create project:', error);
       throw error;
     }
   },
@@ -72,9 +82,10 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       
       return updatedProject;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : '프로젝트 수정에 실패했습니다.';
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : '프로젝트 수정에 실패했습니다.';
       set({ error: errorMessage, isLoading: false });
-      console.error('Failed to update project:', error);
       throw error;
     }
   },
@@ -89,14 +100,21 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         isLoading: false
       }));
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : '프로젝트 삭제에 실패했습니다.';
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : '프로젝트 삭제에 실패했습니다.';
       set({ error: errorMessage, isLoading: false });
-      console.error('Failed to delete project:', error);
       throw error;
     }
   },
   
   getProject: (id) => {
     return get().projects.find(project => project.id === id);
+  },
+  
+  getProjectByName: (name) => {
+    return get().projects.find(project => 
+      project.name.toLowerCase() === name.toLowerCase()
+    );
   }
 }));
