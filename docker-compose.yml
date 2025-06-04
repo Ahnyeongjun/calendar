@@ -5,10 +5,10 @@ services:
   zookeeper:
     image: confluentinc/cp-zookeeper:latest
     environment:
-      ZOOKEEPER_CLIENT_PORT: 2181
-      ZOOKEEPER_TICK_TIME: 2000
+      ZOOKEEPER_CLIENT_PORT: ${ZOOKEEPER_CLIENT_PORT:-2181}
+      ZOOKEEPER_TICK_TIME: ${ZOOKEEPER_TICK_TIME:-2000}
     ports:
-      - "2181:2181"
+      - "${ZOOKEEPER_PORT:-2181}:2181"
 
   # Kafka Message Broker
   kafka:
@@ -16,25 +16,25 @@ services:
     depends_on:
       - zookeeper
     ports:
-      - "9092:9092"
+      - "${KAFKA_PORT:-9092}:9092"
     environment:
-      KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_BROKER_ID: ${KAFKA_BROKER_ID:-1}
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:${ZOOKEEPER_CLIENT_PORT:-2181}
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:${KAFKA_PORT:-9092}
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
-      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092,PLAINTEXT_HOST://0.0.0.0:9092
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092,PLAINTEXT_HOST://0.0.0.0:${KAFKA_PORT:-9092}
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: ${KAFKA_REPLICATION_FACTOR:-1}
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: ${KAFKA_AUTO_CREATE_TOPICS:-true}
 
   # MySQL Database
   mysql:
-    image: mysql:8.0
+    image: mysql:${MYSQL_VERSION:-8.0}
     environment:
-      MYSQL_ROOT_PASSWORD: password
-      MYSQL_DATABASE: calender
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-password}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-calender}
     ports:
-      - "3306:3306"
+      - "${MYSQL_PORT:-3306}:3306"
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
@@ -46,11 +46,11 @@ services:
   calendar-backend:
     build: ./BackEnd
     ports:
-      - "3001:3001"
+      - "${BACKEND_PORT:-3001}:3001"
     environment:
-      DATABASE_URL: mysql://root:password@mysql:3306/calender
+      DATABASE_URL: mysql://root:${MYSQL_ROOT_PASSWORD:-password}@mysql:3306/${MYSQL_DATABASE:-calender}
       KAFKA_BROKERS: kafka:29092
-      JWT_SECRET: your_secret_key_here
+      JWT_SECRET: ${JWT_SECRET:-your_secret_key_here}
       KAFKAJS_NO_PARTITIONER_WARNING: 1
     depends_on:
       mysql:
@@ -62,12 +62,12 @@ services:
   notification-service:
     build: ./notification-service
     ports:
-      - "3002:3002"
+      - "${NOTIFICATION_PORT:-3002}:3002"
     environment:
       KAFKA_BROKERS: kafka:29092
-      DISCORD_BOT_TOKEN: "placeholder_token"
-      DISCORD_GUILD_ID: "placeholder_guild"
-      DISCORD_CHANNEL_ID: "placeholder_channel"
+      DISCORD_BOT_TOKEN: ${DISCORD_BOT_TOKEN:-placeholder_token}
+      DISCORD_GUILD_ID: ${DISCORD_GUILD_ID:-placeholder_guild}
+      DISCORD_CHANNEL_ID: ${DISCORD_CHANNEL_ID:-placeholder_channel}
       CALENDAR_API_URL: http://calendar-backend:3001
       KAFKAJS_NO_PARTITIONER_WARNING: 1
     depends_on:
@@ -81,25 +81,25 @@ services:
       context: ./FrontEnd
       dockerfile: Dockerfile
       args:
-        VITE_API_URL: /api
+        VITE_API_URL: ${VITE_API_URL:-/api}
     ports:
-      - "3000:80"
+      - "${FRONTEND_PORT:-3000}:80"
     depends_on:
       - calendar-backend
     environment:
-      - NODE_ENV=production
+      - NODE_ENV=${NODE_ENV:-production}
 
   # Kafka UI (Web interface for Kafka management)
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
     container_name: kafka-ui
     ports:
-      - "8080:8080"
+      - "${KAFKA_UI_PORT:-8080}:8080"
     environment:
       DYNAMIC_CONFIG_ENABLED: 'true'
-      KAFKA_CLUSTERS_0_NAME: calendar-cluster
+      KAFKA_CLUSTERS_0_NAME: ${KAFKA_CLUSTER_NAME:-calendar-cluster}
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
-      KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
+      KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:${ZOOKEEPER_CLIENT_PORT:-2181}
     depends_on:
       - kafka
     restart: unless-stopped
@@ -109,10 +109,10 @@ services:
     image: obsidiandynamics/kafdrop:latest
     container_name: kafdrop
     ports:
-      - "8081:9000"
+      - "${KAFDROP_PORT:-8081}:9000"
     environment:
       KAFKA_BROKERCONNECT: kafka:29092
-      JVM_OPTS: "-Xms32M -Xmx64M"
+      JVM_OPTS: "${KAFDROP_JVM_OPTS:--Xms32M -Xmx64M}"
       SERVER_SERVLET_CONTEXTPATH: "/"
     depends_on:
       - kafka

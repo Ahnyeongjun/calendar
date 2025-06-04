@@ -66,10 +66,23 @@ export const ScheduleTableRow = ({
     try {
       // ISO datetime string에서 시간만 추출
       const date = new Date(timeString);
+      
+      // 유효한 날짜인지 확인 (1970년 방지)
+      if (isNaN(date.getTime()) || date.getFullYear() < 2000) {
+        // HH:mm 형태라면 그대로 반환
+        if (/^\d{2}:\d{2}$/.test(timeString)) {
+          return timeString;
+        }
+        return '시간 오류';
+      }
+      
       return format(date, 'HH:mm');
     } catch {
-      // 이미 HH:mm 형태라면 그대로 반환
-      return timeString;
+      // HH:mm 형태라면 그대로 반환
+      if (/^\d{2}:\d{2}$/.test(timeString)) {
+        return timeString;
+      }
+      return '시간 오류';
     }
   };
 
