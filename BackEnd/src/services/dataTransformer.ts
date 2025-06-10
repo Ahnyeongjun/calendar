@@ -1,5 +1,5 @@
 import { Status, Priority } from '@prisma/client';
-import { timeUtils, dateUtils } from '../utils/converter';
+import { timeUtils, dateUtils, storeEndDateInfo } from '../utils/converter';
 
 // API 요청 데이터 타입
 export interface ScheduleApiRequest {
@@ -41,12 +41,34 @@ export interface ScheduleUpdateData {
 class ScheduleTransformer {
   // API 요청 데이터를 Prisma 생성 데이터로 변환
   static apiToCreateData(apiData: ScheduleApiRequest, userId: string): ScheduleCreateData {
+    // ISO datetime에서 날짜와 시간 정보 추출 (UTC 시간 유지)
+    let scheduleDate = new Date(apiData.date);
+    let startTime = null;
+    let endTime = null;
+    
+    if (apiData.start_date) {
+      const startDateTime = new Date(apiData.start_date);
+      if (!isNaN(startDateTime.getTime())) {
+        // UTC 날짜를 사용하여 시간대 변환 방지
+        scheduleDate = new Date(Date.UTC(
+          startDateTime.getUTCFullYear(), 
+          startDateTime.getUTCMonth(), 
+          startDateTime.getUTCDate()
+        ));
+        startTime = timeUtils.parseTimeToDate(apiData.start_date);
+      }
+    }
+    
+    if (apiData.end_date) {
+      endTime = timeUtils.parseTimeToDate(apiData.end_date);
+    }
+    
     return {
       title: this.sanitizeString(apiData.title),
       description: this.sanitizeStringToNull(apiData.description),
-      date: new Date(apiData.date),
-      startTime: timeUtils.parseTimeToDate(apiData.start_date),
-      endTime: timeUtils.parseTimeToDate(apiData.end_date),
+      date: scheduleDate,
+      startTime,
+      endTime,
       status: apiData.status,
       priority: apiData.priority,
       projectId: this.sanitizeStringToNull(apiData.project_id),
@@ -71,6 +93,15 @@ class ScheduleTransformer {
     }
 
     if (apiData.start_date !== undefined) {
+      const startDateTime = new Date(apiData.start_date);
+      if (!isNaN(startDateTime.getTime())) {
+        // UTC 날짜를 사용하여 시간대 변환 방지
+        updateData.date = new Date(Date.UTC(
+          startDateTime.getUTCFullYear(), 
+          startDateTime.getUTCMonth(), 
+          startDateTime.getUTCDate()
+        ));
+      }
       updateData.startTime = timeUtils.parseTimeToDate(apiData.start_date);
     }
 
@@ -143,16 +174,21 @@ class ScheduleTransformer {
     }
 
     if (data.start_date && !timeUtils.isValidTime(data.start_date)) {
-      throw new Error('유효하지 않은 시작 시간 형식입니다. (HH:MM 형식을 사용하세요)');
+      throw new Error('유효하지 않은 시작 시간 형식입니다. (HH:MM 또는 ISO datetime 형식을 사용하세요)');
     }
 
     if (data.end_date && !timeUtils.isValidTime(data.end_date)) {
-      throw new Error('유효하지 않은 종료 시간 형식입니다. (HH:MM 형식을 사용하세요)');
+      throw new Error('유효하지 않은 종료 시간 형식입니다. (HH:MM 또는 ISO datetime 형식을 사용하세요)');
     }
 
     // 시간 순서 검증 (API 요청 레벨에서)
-    if (data.start_date && data.end_date && data.start_date >= data.end_date) {
-      throw new Error('시작 시간은 종료 시간보다 이전이어야 합니다.');
+    if (data.start_date && data.end_date) {
+      const startTime = timeUtils.parseTimeToDate(data.start_date);
+      const endTime = timeUtils.parseTimeToDate(data.end_date);
+      
+      if (startTime && endTime && startTime >= endTime) {
+        throw new Error('시작 시간은 종료 시간보다 이전이어야 합니다.');
+      }
     }
   }
 }

@@ -1,4 +1,4 @@
-import { Plus, X } from 'lucide-react';
+import { Plus, X, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Schedule } from '@/types/schedule';
@@ -10,6 +10,7 @@ interface ScheduleListPopupProps {
   date: Date;
   onClose: () => void;
   onScheduleClick: (schedule: Schedule) => void;
+  onScheduleDelete?: (schedule: Schedule) => void;
   onDateClick?: (date: Date) => void;
 }
 
@@ -18,6 +19,7 @@ export const ScheduleListPopup = ({
   date,
   onClose,
   onScheduleClick,
+  onScheduleDelete,
   onDateClick
 }: ScheduleListPopupProps) => {
   const { getProjectColor, getProjectName, getProjectBadgeStyle } = useProject();
@@ -27,6 +29,13 @@ export const ScheduleListPopup = ({
       onDateClick(date);
     }
     onClose();
+  };
+
+  const handleDelete = (e: React.MouseEvent, schedule: Schedule) => {
+    e.stopPropagation();
+    if (onScheduleDelete && confirm('이 일정을 삭제하시겠습니까?')) {
+      onScheduleDelete(schedule);
+    }
   };
 
   const getStatusText = (status: string) => {
@@ -73,7 +82,7 @@ export const ScheduleListPopup = ({
           {schedules.map((schedule) => (
             <div
               key={schedule.id}
-              className="p-3 rounded-lg border cursor-pointer hover:shadow-md transition-all hover:scale-105 bg-white border-l-4"
+              className="group p-3 rounded-lg border cursor-pointer hover:shadow-md transition-all hover:scale-105 bg-white border-l-4"
               style={{ 
                 borderLeftColor: getProjectColor(schedule.projectId),
                 backgroundColor: getProjectColor(schedule.projectId) + '08'
@@ -85,9 +94,20 @@ export const ScheduleListPopup = ({
             >
               <div className="flex items-center justify-between mb-2">
                 <div className="font-medium flex-1">{schedule.title}</div>
-                {schedule.priority === 'high' && (
-                  <div className="w-2 h-2 bg-red-500 rounded-full ml-2" />
-                )}
+                <div className="flex items-center space-x-1">
+                  {schedule.priority === 'high' && (
+                    <div className="w-2 h-2 bg-red-500 rounded-full" />
+                  )}
+                  {onScheduleDelete && (
+                    <button
+                      onClick={(e) => handleDelete(e, schedule)}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-100 rounded"
+                      title="일정 삭제"
+                    >
+                      <Trash2 size={12} className="text-red-500" />
+                    </button>
+                  )}
+                </div>
               </div>
               
               <div className="text-sm text-gray-600 mb-2">

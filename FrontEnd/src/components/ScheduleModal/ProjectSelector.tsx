@@ -26,16 +26,16 @@ export const ProjectSelector = ({ selectedProjectId, onProjectChange }: ProjectS
 
   return (
     <div className="space-y-3">
-      <Select 
-        value={selectedProjectId || 'none'} 
+      <Select
+        value={selectedProjectId || 'none'}
         onValueChange={handleValueChange}
       >
         <SelectTrigger>
           <SelectValue placeholder="프로젝트를 선택하세요">
             {selectedProject ? (
               <div className="flex items-center space-x-2">
-                <div 
-                  className="w-3 h-3 rounded-full" 
+                <div
+                  className="w-3 h-3 rounded-full"
                   style={{ backgroundColor: selectedProject.color }}
                 />
                 <span>{selectedProject.name}</span>
@@ -58,8 +58,8 @@ export const ProjectSelector = ({ selectedProjectId, onProjectChange }: ProjectS
           {projects.map((project) => (
             <SelectItem key={project.id} value={project.id}>
               <div className="flex items-center space-x-2">
-                <div 
-                  className="w-3 h-3 rounded-full" 
+                <div
+                  className="w-3 h-3 rounded-full"
                   style={{ backgroundColor: project.color }}
                 />
                 <span>{project.name}</span>
@@ -77,8 +77,8 @@ export const ProjectSelector = ({ selectedProjectId, onProjectChange }: ProjectS
         <div className="p-3 bg-gray-50 rounded-lg">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
-              <Badge 
-                variant="secondary" 
+              <Badge
+                variant="secondary"
                 style={{ backgroundColor: selectedProject.color + '20', color: selectedProject.color }}
               >
                 {selectedProject.name}
@@ -93,9 +93,10 @@ export const ProjectSelector = ({ selectedProjectId, onProjectChange }: ProjectS
 
       {/* 프로젝트 관리 버튼 */}
       <div className="flex justify-end">
-        <Button 
-          variant="ghost" 
-          size="sm" 
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
           className="text-xs"
           onClick={() => setIsManageModalOpen(true)}
         >

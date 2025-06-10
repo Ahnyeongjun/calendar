@@ -112,10 +112,122 @@ export const formatTimeForInput = (time: string | null): string => {
   return `${hours}:${minutes}`;
 };
 
+// Date 객체에서 시간 부분만 추출하는 헬퍼
+export const getTimeFromDate = (date: Date): string => {
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  return `${hours}:${minutes}`;
+};
+
 export const isValidDate = (date: any): date is Date => {
   return date instanceof Date && !isNaN(date.getTime());
 };
 
 export const getWeekDays = (): string[] => {
   return ['일', '월', '화', '수', '목', '금', '토'];
+};
+
+// datetime-local input을 위한 헬퍼 함수들
+export const toDateTimeString = (date: Date, time?: string): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const timeStr = time || '00:00';
+  return `${year}-${month}-${day}T${timeStr}`;
+};
+
+export const fromDateTimeString = (dateTimeString: string): { date: Date; time: string } => {
+  const [datePart, timePart] = dateTimeString.split('T');
+  const date = fromDateString(datePart);
+  const time = timePart || '00:00';
+  return { date, time };
+};
+
+export const formatDateTimeForDisplay = (dateTimeString: string): string => {
+  const [datePart, timePart] = dateTimeString.split('T');
+  const dateObj = fromDateString(datePart);
+  const year = dateObj.getFullYear();
+  const month = dateObj.getMonth() + 1;
+  const day = dateObj.getDate();
+  const [hours, minutes] = timePart.split(':');
+  return `${year}년 ${month}월 ${day}일 ${hours}:${minutes}`;
+};
+
+// datetime-local input에서 사용할 현재 날짜 시간 문자열 생성
+export const getCurrentDateTimeString = (): string => {
+  const now = new Date();
+  return toDateTimeString(now, formatTimeForInput(now.toISOString()));
+};
+
+// 스케줄의 시작일과 종료일 사이의 모든 날짜 배열 생성
+export const getDateRangeFromSchedule = (startDate?: string, endDate?: string): string[] => {
+  if (!startDate || !endDate) return [];
+  
+  try {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) return [];
+    
+    const dates: string[] = [];
+    const current = new Date(start);
+    
+    // 시작날짜부터 종료날짜까지 모든 날짜 추가
+    while (current <= end) {
+      dates.push(toDateString(current));
+      current.setDate(current.getDate() + 1);
+    }
+    
+    return dates;
+  } catch {
+    return [];
+  }
+};
+
+// 스케줄이 특정 날짜에 포함되는지 확인
+export const isDateInScheduleRange = (date: Date, schedule: { startDate?: string; endDate?: string }): boolean => {
+  if (!schedule.startDate || !schedule.endDate) return false;
+  
+  try {
+    const checkDate = toDateString(date);
+    const dateRange = getDateRangeFromSchedule(schedule.startDate, schedule.endDate);
+    return dateRange.includes(checkDate);
+  } catch {
+    return false;
+  }
+};
+
+// 백엔드 API용: datetime-local 형식을 ISO string으로 변환 (날짜 + 시간 포함)
+export const formatDateTimeForAPI = (dateTimeString: string): string => {
+  if (!dateTimeString) return '';
+  // datetime-local 형식 (YYYY-MM-DDTHH:MM)을 ISO string으로 변환
+  const date = new Date(dateTimeString);
+  return date.toISOString();
+};
+
+// 백엔드에서 받은 ISO string을 datetime-local 형식으로 변환
+export const formatDateTimeFromAPI = (isoString: string, fallbackTime?: string): string => {
+  if (!isoString) {
+    const today = new Date();
+    return toDateTimeString(today, fallbackTime || '09:00');
+  }
+  
+  const date = new Date(isoString);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+};
+
+// 백엔드에서 받은 startDate/endDate ISO string을 datetime-local 형식으로 변환
+export const formatStartEndDateFromAPI = (startDate?: string, endDate?: string) => {
+  const today = new Date();
+  
+  return {
+    startDateTime: startDate ? formatDateTimeFromAPI(startDate) : toDateTimeString(today, '09:00'),
+    endDateTime: endDate ? formatDateTimeFromAPI(endDate) : toDateTimeString(today, '10:00')
+  };
 };

@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import ScheduleModel from '../models/Schedule';
 import { Status, Priority } from '@prisma/client';
 import { kafkaProducer } from '../services/kafka.client';
-import { convertKafkaDate, convertScheduleDate } from '../utils/converter';
+import { convertKafkaDate, convertScheduleDate, storeEndDateInfo } from '../utils/converter';
 import { asyncHandler, ValidationError, NotFoundError, ForbiddenError, UnauthorizedError } from '../middleware/errorHandler';
 import ValidationService from '../services/validationService';
 import ScheduleTransformer from '../services/dataTransformer';
@@ -121,6 +121,11 @@ class ScheduleController {
 
     const newSchedule = await ScheduleModel.create(scheduleData);
 
+    // endDate 원본 정보 저장 (ISO datetime 형식 보조)
+    if (req.body.end_date && newSchedule.id) {
+      storeEndDateInfo(newSchedule.id, req.body.end_date);
+    }
+
     // Kafka 이벤트 발행
     await ScheduleController.publishKafkaEvent(newSchedule, 'CREATE');
 
@@ -158,6 +163,11 @@ class ScheduleController {
 
     if (!updatedSchedule) {
       throw new NotFoundError('일정을 찾을 수 없습니다.');
+    }
+
+    // endDate 원본 정보 업데이트
+    if (req.body.end_date) {
+      storeEndDateInfo(id, req.body.end_date);
     }
 
     // Kafka 이벤트 발행

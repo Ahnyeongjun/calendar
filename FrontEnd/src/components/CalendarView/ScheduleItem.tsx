@@ -1,15 +1,18 @@
 import { Schedule } from '@/types/schedule';
 import { useProject } from '@/hooks/useProject';
 import { Badge } from '@/components/ui/badge';
+import { Trash2 } from 'lucide-react';
 
 interface ScheduleItemProps {
   schedule: Schedule;
   onScheduleClick: (schedule: Schedule) => void;
+  onScheduleDelete?: (schedule: Schedule) => void;
 }
 
 export const ScheduleItem = ({
   schedule,
-  onScheduleClick
+  onScheduleClick,
+  onScheduleDelete
 }: ScheduleItemProps) => {
   const { getProjectColor, getProjectName } = useProject();
   const projectColor = getProjectColor(schedule.projectId);
@@ -54,9 +57,16 @@ export const ScheduleItem = ({
     }
   };
 
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onScheduleDelete && confirm('이 일정을 삭제하시겠습니까?')) {
+      onScheduleDelete(schedule);
+    }
+  };
+
   return (
     <div
-      className="text-xs p-2 rounded border cursor-pointer hover:shadow-sm transition-all hover:scale-105 bg-white border-l-4"
+      className="group text-xs p-2 rounded border cursor-pointer hover:shadow-sm transition-all hover:scale-105 bg-white border-l-4"
       style={{
         borderLeftColor: projectColor,
         backgroundColor: projectColor + '08'
@@ -66,22 +76,35 @@ export const ScheduleItem = ({
         onScheduleClick(schedule);
       }}
     >
-      <div className="flex items-center justify-between mb-1">
-        <div className="font-medium truncate flex-1">{schedule.title}</div>
-        {schedule.priority === 'high' && (
-          <div className="w-2 h-2 bg-red-500 rounded-full ml-1 flex-shrink-0" />
-        )}
-      </div>
-
-      <div className="flex items-center justify-between text-xs opacity-75">
-        <span>{getTimeDisplay()}</span>
-        {schedule.projectId && (
-          <div
-            className="w-2 h-2 rounded-full flex-shrink-0"
-            style={{ backgroundColor: projectColor }}
-            title={getProjectName(schedule.projectId)}
-          />
-        )}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-2 flex-1 min-w-0">
+          <div className="font-medium truncate">{schedule.title}</div>
+          <div className="text-xs opacity-75 whitespace-nowrap">
+            {getTimeDisplay()}
+          </div>
+        </div>
+        
+        <div className="flex items-center space-x-1">
+          {schedule.priority === 'high' && (
+            <div className="w-2 h-2 bg-red-500 rounded-full flex-shrink-0" />
+          )}
+          {schedule.projectId && (
+            <div
+              className="w-2 h-2 rounded-full flex-shrink-0"
+              style={{ backgroundColor: projectColor }}
+              title={getProjectName(schedule.projectId)}
+            />
+          )}
+          {onScheduleDelete && (
+            <button
+              onClick={handleDelete}
+              className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-100 rounded"
+              title="일정 삭제"
+            >
+              <Trash2 size={10} className="text-red-500" />
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

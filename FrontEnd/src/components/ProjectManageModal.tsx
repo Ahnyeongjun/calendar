@@ -72,7 +72,7 @@ export const ProjectManageModal = ({ isOpen, onClose }: ProjectManageModalProps)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    e.stopPropagation(); // 이벤트 버블링 방지
+    e.stopPropagation();
 
     if (!formData.name.trim()) {
       toast({
@@ -80,6 +80,11 @@ export const ProjectManageModal = ({ isOpen, onClose }: ProjectManageModalProps)
         description: "프로젝트 이름을 입력해주세요.",
         variant: "destructive"
       });
+      return;
+    }
+
+    // 추가 모드가 아닐 때는 제출하지 않음
+    if (!isAddMode) {
       return;
     }
 
@@ -186,8 +191,94 @@ export const ProjectManageModal = ({ isOpen, onClose }: ProjectManageModalProps)
             </Card>
           )}
 
+          {/* 기존 프로젝트 목록 */}
+          <div className="space-y-3">
+            <h3 className="text-lg font-semibold">기존 프로젝트</h3>
+
+            {isLoading ? (
+              <Card>
+                <CardContent className="py-8 text-center">
+                  <Loader2 className="mx-auto h-8 w-8 animate-spin text-gray-400 mb-4" />
+                  <p className="text-gray-500">프로젝트를 불러오는 중...</p>
+                </CardContent>
+              </Card>
+            ) : projects.length === 0 ? (
+              <Card>
+                <CardContent className="py-8 text-center">
+                  <Folder className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                  <p className="text-gray-500">아직 프로젝트가 없습니다.</p>
+                  <p className="text-sm text-gray-400">새 프로젝트를 추가해보세요.</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid gap-3">
+                {projects.map((project) => (
+                  <Card key={project.id} className="border-l-4 hover:bg-gray-50 transition-colors" style={{ borderLeftColor: project.color }}>
+                    <CardContent className="py-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <div
+                            className="w-4 h-4 rounded-full"
+                            style={{ backgroundColor: project.color }}
+                          />
+                          <div className="flex-1">
+                            <h4 className="font-medium">{project.name}</h4>
+                            {project.description && (
+                              <p className="text-sm text-gray-600 mt-1">{project.description}</p>
+                            )}
+                            <div className="flex items-center space-x-2 mt-2">
+                              <Badge variant="outline" className="text-xs">
+                                생성: {new Date(project.createdAt).toLocaleDateString()}
+                              </Badge>
+                              {project.updatedAt !== project.createdAt && (
+                                <Badge variant="outline" className="text-xs">
+                                  수정: {new Date(project.updatedAt).toLocaleDateString()}
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            type="button"
+                            onClick={(e) => handleEditClick(e, project)}
+                            disabled={isLoading}
+                          >
+                            <Edit size={14} />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            type="button"
+                            onClick={(e) => handleDeleteClick(e, project)}
+                            className="text-red-600 hover:text-red-700"
+                            disabled={isLoading}
+                          >
+                            <Trash2 size={14} />
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* 새 프로젝트 추가 버튼 */}
+          {!isAddMode && (
+            <div className="flex justify-end">
+              <Button onClick={handleAddClick} disabled={isLoading} type="button">
+                <Plus size={16} className="mr-2" />
+                새 프로젝트 추가
+              </Button>
+            </div>
+          )}
+
           {/* 프로젝트 추가/수정 폼 */}
-          {isAddMode ? (
+          {isAddMode && (
             <Card>
               <CardHeader>
                 <CardTitle>
@@ -256,88 +347,7 @@ export const ProjectManageModal = ({ isOpen, onClose }: ProjectManageModalProps)
                 </form>
               </CardContent>
             </Card>
-          ) : (
-            <div className="flex justify-end">
-              <Button onClick={handleAddClick} disabled={isLoading}>
-                <Plus size={16} className="mr-2" />
-                새 프로젝트 추가
-              </Button>
-            </div>
           )}
-
-          {/* 기존 프로젝트 목록 */}
-          <div className="space-y-3">
-            <h3 className="text-lg font-semibold">기존 프로젝트</h3>
-
-            {isLoading ? (
-              <Card>
-                <CardContent className="py-8 text-center">
-                  <Loader2 className="mx-auto h-8 w-8 animate-spin text-gray-400 mb-4" />
-                  <p className="text-gray-500">프로젝트를 불러오는 중...</p>
-                </CardContent>
-              </Card>
-            ) : projects.length === 0 ? (
-              <Card>
-                <CardContent className="py-8 text-center">
-                  <Folder className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                  <p className="text-gray-500">아직 프로젝트가 없습니다.</p>
-                  <p className="text-sm text-gray-400">새 프로젝트를 추가해보세요.</p>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid gap-3">
-                {projects.map((project) => (
-                  <Card key={project.id} className="border-l-4 hover:bg-gray-50 transition-colors" style={{ borderLeftColor: project.color }}>
-                    <CardContent className="py-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-3">
-                          <div
-                            className="w-4 h-4 rounded-full"
-                            style={{ backgroundColor: project.color }}
-                          />
-                          <div className="flex-1">
-                            <h4 className="font-medium">{project.name}</h4>
-                            {project.description && (
-                              <p className="text-sm text-gray-600 mt-1">{project.description}</p>
-                            )}
-                            <div className="flex items-center space-x-2 mt-2">
-                              <Badge variant="outline" className="text-xs">
-                                생성: {new Date(project.createdAt).toLocaleDateString()}
-                              </Badge>
-                              {project.updatedAt !== project.createdAt && (
-                                <Badge variant="outline" className="text-xs">
-                                  수정: {new Date(project.updatedAt).toLocaleDateString()}
-                                </Badge>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => handleEditClick(e, project)}
-                            disabled={isLoading}
-                          >
-                            <Edit size={14} />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => handleDeleteClick(e, project)}
-                            className="text-red-600 hover:text-red-700"
-                            disabled={isLoading}
-                          >
-                            <Trash2 size={14} />
-                          </Button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </div>
         </div>
       </DialogContent>
     </Dialog>

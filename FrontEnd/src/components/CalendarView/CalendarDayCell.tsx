@@ -10,6 +10,7 @@ interface CalendarDayCellProps {
   daySchedules: Schedule[];
   onDateClick: (date: Date) => void;
   onScheduleClick: (schedule: Schedule) => void;
+  onScheduleDelete?: (schedule: Schedule) => void;
   onMoreClick: (e: React.MouseEvent, date: Date, schedules: Schedule[]) => void;
 }
 
@@ -21,6 +22,7 @@ export const CalendarDayCell = ({
   daySchedules,
   onDateClick,
   onScheduleClick,
+  onScheduleDelete,
   onMoreClick
 }: CalendarDayCellProps) => {
   return (
@@ -50,6 +52,7 @@ export const CalendarDayCell = ({
             key={schedule.id}
             schedule={schedule}
             onScheduleClick={onScheduleClick}
+            onScheduleDelete={onScheduleDelete}
           />
         ))}
 

@@ -110,6 +110,24 @@ const MainPage = () => {
     openScheduleModal();
   };
 
+  // 캘린더에서 사용할 스케줄 삭제 함수
+  const handleScheduleDelete = async (schedule: Schedule) => {
+    try {
+      await deleteSchedule(schedule.id);
+      toast({
+        title: "일정이 삭제되었습니다",
+        description: `"${schedule.title}" 일정이 성공적으로 삭제되었습니다.`,
+      });
+    } catch (error) {
+      toast({
+        title: "삭제 실패",
+        description: error instanceof Error ? error.message : "일정 삭제에 실패했습니다.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // 테이블에서 사용할 스케줄 삭제 함수 (ID 기반)
   const handleDeleteSchedule = async (id: string) => {
     try {
       const schedule = schedules.find(s => s.id === id);
@@ -173,6 +191,7 @@ const MainPage = () => {
           <CalendarView
             schedules={filteredSchedules}
             onScheduleClick={handleScheduleClick}
+            onScheduleDelete={handleScheduleDelete}
             onDateClick={handleDateClick}
             selectedProjectId={projectFilter}
             onProjectFilterChange={setProjectFilter}
@@ -195,6 +214,7 @@ const MainPage = () => {
           setSelectedDate(undefined);
         }}
         onSave={handleSaveSchedule}
+        onDelete={handleScheduleDelete}
         schedule={selectedSchedule}
         selectedDate={selectedDate}
       />

@@ -1,32 +1,32 @@
 import { useState, useEffect } from 'react';
-import { Calendar } from 'lucide-react';
+import { Calendar, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Schedule, ScheduleFormData } from '@/types/schedule';
-import { DatePicker } from './DatePicker';
 import { TimeRangePicker } from './TimeRangePicker';
 import { ScheduleOptions } from './ScheduleOptions';
 import { ProjectSelector } from './ProjectSelector';
-import { toDateString, fromDateString } from '@/util/dateUtils';
+import { toDateTimeString, formatDateTimeForAPI, formatStartEndDateFromAPI } from '@/util/dateUtils';
 
 interface ScheduleModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (data: ScheduleFormData, scheduleId?: string) => void;
+  onDelete?: (schedule: Schedule) => void;
   schedule?: Schedule | null;
   selectedDate?: Date;
 }
 
-const ScheduleModal = ({ isOpen, onClose, onSave, schedule, selectedDate }: ScheduleModalProps) => {
+const ScheduleModal = ({ isOpen, onClose, onSave, onDelete, schedule, selectedDate }: ScheduleModalProps) => {
   const [formData, setFormData] = useState<ScheduleFormData>({
     title: '',
     description: '',
-    date: selectedDate ? toDateString(selectedDate) : toDateString(new Date()),
-    start_date: '09:00',
-    end_date: '10:00',
+    date: '', // 내부적으로만 사용, start_date에서 추출
+    start_date: toDateTimeString(new Date(), '09:00'),
+    end_date: toDateTimeString(new Date(), '10:00'),
     projectId: undefined,
     priority: 'medium',
     status: 'planned'
@@ -35,14 +35,17 @@ const ScheduleModal = ({ isOpen, onClose, onSave, schedule, selectedDate }: Sche
   useEffect(() => {
     if (schedule) {
       // Backend에서 받은 데이터를 폼 데이터로 변환
-      const scheduleDate = new Date(schedule.date);
+      const { startDateTime, endDateTime } = formatStartEndDateFromAPI(
+        schedule.startDate, 
+        schedule.endDate
+      );
       
       setFormData({
         title: schedule.title,
         description: schedule.description || '',
-        date: toDateString(scheduleDate),
-        start_date: schedule.start_date || '09:00',
-        end_date: schedule.end_date || '10:00',
+        date: '', // start_date에서 추출되므로 비우기
+        start_date: startDateTime,
+        end_date: endDateTime,
         projectId: schedule.projectId,
         priority: schedule.priority,
         status: schedule.status
@@ -50,16 +53,18 @@ const ScheduleModal = ({ isOpen, onClose, onSave, schedule, selectedDate }: Sche
     } else if (selectedDate) {
       setFormData(prev => ({ 
         ...prev, 
-        date: toDateString(selectedDate)
+        start_date: toDateTimeString(selectedDate, '09:00'),
+        end_date: toDateTimeString(selectedDate, '10:00')
       }));
     } else {
       // 기본값으로 리셋
+      const today = new Date();
       setFormData({
         title: '',
         description: '',
-        date: toDateString(new Date()),
-        start_date: '09:00',
-        end_date: '10:00',
+        date: '',
+        start_date: toDateTimeString(today, '09:00'),
+        end_date: toDateTimeString(today, '10:00'),
         projectId: undefined,
         priority: 'medium',
         status: 'planned'
@@ -76,21 +81,49 @@ const ScheduleModal = ({ isOpen, onClose, onSave, schedule, selectedDate }: Sche
       return;
     }
     
-    if (!formData.date) {
-      alert('날짜를 선택해주세요.');
+    if (!formData.start_date || !formData.end_date) {
+      alert('시작일자와 종료일자를 설정해주세요.');
       return;
     }
     
-    onSave(formData, schedule?.id);
+    // 날짜 순서 검증
+    const startDate = new Date(formData.start_date);
+    const endDate = new Date(formData.end_date);
+    
+    if (startDate > endDate) {
+      alert('시작일자가 종료일자보다 늦을 수 없습니다.');
+      return;
+    }
+    
+    // start_date에서 날짜 추출하여 date 필드 설정
+    const dateStr = startDate.toISOString().split('T')[0];
+    
+    // 백엔드로 보낼 때 ISO string 형식으로 변환 (날짜 + 시간 포함)
+    const apiData = {
+      ...formData,
+      date: dateStr, // start_date에서 추출한 날짜
+      start_date: formatDateTimeForAPI(formData.start_date),
+      end_date: formatDateTimeForAPI(formData.end_date)
+    };
+    
+    onSave(apiData, schedule?.id);
+  };
+
+  const handleDelete = () => {
+    if (schedule && onDelete && confirm('이 일정을 삭제하시겠습니까?')) {
+      onDelete(schedule);
+      onClose();
+    }
   };
 
   const handleClose = () => {
+    const today = new Date();
     setFormData({
       title: '',
       description: '',
-      date: toDateString(new Date()),
-      start_date: '09:00',
-      end_date: '10:00',
+      date: '',
+      start_date: toDateTimeString(today, '09:00'),
+      end_date: toDateTimeString(today, '10:00'),
       projectId: undefined,
       priority: 'medium',
       status: 'planned'
@@ -136,19 +169,9 @@ const ScheduleModal = ({ isOpen, onClose, onSave, schedule, selectedDate }: Sche
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-4">
             <div className="space-y-2">
-              <Label>날짜</Label>
-              <DatePicker
-                date={fromDateString(formData.date)}
-                onDateChange={(date) => updateFormData({ 
-                  date: toDateString(date)
-                })}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>시간</Label>
+              <Label>시작일자 ~ 종료일자</Label>
               <TimeRangePicker
                 start_date={formData.start_date}
                 end_date={formData.end_date}
@@ -174,13 +197,25 @@ const ScheduleModal = ({ isOpen, onClose, onSave, schedule, selectedDate }: Sche
             onStatusChange={(status) => updateFormData({ status: status as any })}
           />
 
-          <div className="flex justify-end space-x-3 pt-4 border-t">
+          <div className="flex justify-between pt-4 border-t">
             <Button type="button" variant="outline" onClick={handleClose}>
               취소
             </Button>
-            <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
-              {schedule ? '수정하기' : '추가하기'}
-            </Button>
+            <div className="flex space-x-3">
+              {schedule && onDelete && (
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={handleDelete}
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                >
+                  삭제
+                </Button>
+              )}
+              <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
+                {schedule ? '수정' : '추가하기'}
+              </Button>
+            </div>
           </div>
         </form>
       </DialogContent>

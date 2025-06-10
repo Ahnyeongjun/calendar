@@ -19,12 +19,14 @@ import {
   isSameMonth,
   addMonths,
   subMonths,
-  toDateString
+  toDateString,
+  isDateInScheduleRange
 } from '@/util/dateUtils';
 
 interface CalendarViewProps {
   schedules: Schedule[];
   onScheduleClick: (schedule: Schedule) => void;
+  onScheduleDelete?: (schedule: Schedule) => void;
   onDateClick: (date: Date) => void;
   selectedProjectId?: string;
   onProjectFilterChange?: (projectId?: string) => void;
@@ -34,6 +36,7 @@ interface CalendarViewProps {
 const CalendarView = ({
   schedules = [],
   onScheduleClick = () => { },
+  onScheduleDelete,
   onDateClick = () => { },
   selectedProjectId,
   onProjectFilterChange
@@ -51,12 +54,17 @@ const CalendarView = ({
   const getSchedulesForDate = (date: Date) => {
     const dateString = toDateString(date);
     return schedules.filter(schedule => {
-      // schedule.date가 string 형태인 경우 처리
+      // 기존 방식: schedule.date와 비교
       const scheduleDate = typeof schedule.date === 'string' 
         ? schedule.date.split('T')[0] // ISO string에서 날짜 부분만 추출
         : toDateString(new Date(schedule.date));
       
-      return scheduleDate === dateString;
+      const isOnScheduleDate = scheduleDate === dateString;
+      
+      // 새로운 방식: startDate와 endDate 범위 확인
+      const isInDateRange = isDateInScheduleRange(date, schedule);
+      
+      return isOnScheduleDate || isInDateRange;
     });
   };
 
@@ -107,6 +115,7 @@ const CalendarView = ({
                   daySchedules={daySchedules}
                   onDateClick={onDateClick}
                   onScheduleClick={onScheduleClick}
+                  onScheduleDelete={onScheduleDelete}
                   onMoreClick={handleMoreClick}
                 />
               );
@@ -120,6 +129,7 @@ const CalendarView = ({
             date={popupDate}
             onClose={closePopup}
             onScheduleClick={onScheduleClick}
+            onScheduleDelete={onScheduleDelete}
             onDateClick={onDateClick}
           />
         )}

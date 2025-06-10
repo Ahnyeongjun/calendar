@@ -22,31 +22,64 @@ export const timeUtils = {
     return null;
   },
 
-  // HH:MM 형식의 시간을 Date 객체로 변환 (MySQL TIME 타입용)
+  // 시간 문자열을 Date 객체로 변환 (HH:MM 형식 또는 ISO datetime 형식 지원)
   parseTimeToDate: (time?: string): Date | null => {
-    if (!time || !time.includes(':')) {
+    if (!time) {
       return null;
     }
     
-    const [hours, minutes] = time.split(':').map(Number);
-    if (isNaN(hours) || isNaN(minutes) || hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
-      return null;
+    // ISO datetime 형식인 경우 (YYYY-MM-DDTHH:MM:SS.sssZ 또는 YYYY-MM-DDTHH:MM)
+    if (time.includes('T') || time.includes('-')) {
+      const date = new Date(time);
+      if (isNaN(date.getTime())) {
+        return null;
+      }
+      
+      // MySQL TIME 타입을 위해 1970-01-01 기준으로 시간만 저장 (UTC 유지)
+      const mysqlTimeDate = new Date('1970-01-01T00:00:00.000Z');
+      mysqlTimeDate.setUTCHours(date.getUTCHours());
+      mysqlTimeDate.setUTCMinutes(date.getUTCMinutes());
+      mysqlTimeDate.setUTCSeconds(date.getUTCSeconds());
+      mysqlTimeDate.setUTCMilliseconds(0);
+      
+      return mysqlTimeDate;
     }
     
-    // MySQL TIME 타입은 '1970-01-01 HH:MM:SS' 형태로 저장됨
-    const date = new Date('1970-01-01T00:00:00.000Z');
-    date.setUTCHours(hours);
-    date.setUTCMinutes(minutes);
-    date.setUTCSeconds(0);
-    date.setUTCMilliseconds(0);
+    // HH:MM 형식인 경우
+    if (time.includes(':')) {
+      const [hours, minutes] = time.split(':').map(Number);
+      if (isNaN(hours) || isNaN(minutes) || hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+        return null;
+      }
+      
+      // MySQL TIME 타입은 '1970-01-01 HH:MM:SS' 형태로 저장됨
+      const date = new Date('1970-01-01T00:00:00.000Z');
+      date.setUTCHours(hours);
+      date.setUTCMinutes(minutes);
+      date.setUTCSeconds(0);
+      date.setUTCMilliseconds(0);
+      
+      return date;
+    }
     
-    return date;
+    return null;
   },
 
-  // 시간 유효성 검증
+  // 시간 유효성 검증 (HH:MM 형식 또는 ISO datetime 형식 지원)
   isValidTime: (timeStr: string): boolean => {
+    // HH:MM 형식 검증
     const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
-    return timeRegex.test(timeStr);
+    if (timeRegex.test(timeStr)) {
+      return true;
+    }
+    
+    // ISO datetime 형식 검증
+    if (timeStr.includes('T') || timeStr.includes('-')) {
+      const date = new Date(timeStr);
+      return !isNaN(date.getTime());
+    }
+    
+    return false;
   }
 };
 
@@ -85,11 +118,36 @@ export const dateUtils = {
   }
 };
 
+// 백엔드에서 받은 datetime 정보를 저장하기 위한 전역 변수
+// (MySQL TIME 타입의 한계로 인한 임시 해결책)
+let scheduleEndDateMap = new Map<string, string>();
+
 // 스케줄 데이터 변환 (응답용)
 export const convertScheduleDate = (schedule: any) => {
   const formattedDate = dateUtils.formatDate(schedule.date);
   const formattedStartTime = timeUtils.formatTimeFromMySQL(schedule.startTime);
   const formattedEndTime = timeUtils.formatTimeFromMySQL(schedule.endTime);
+
+  // 원본 datetime 정보 복원 (UTC 시간 유지)
+  let startDate = null;
+  let endDate = null;
+  
+  if (formattedStartTime) {
+    // UTC 시간으로 직접 생성 (시간대 변환 방지)
+    startDate = `${formattedDate}T${formattedStartTime}:00.000Z`;
+  }
+  
+  if (formattedEndTime) {
+    // 저장된 endDate 정보가 있는지 확인
+    const storedEndDate = scheduleEndDateMap.get(schedule.id);
+    if (storedEndDate) {
+      // 원본 ISO datetime 정보 사용
+      endDate = storedEndDate;
+    } else {
+      // 기본적으로는 같은 날짜로 처리
+      endDate = `${formattedDate}T${formattedEndTime}:00.000Z`;
+    }
+  }
 
   return {
     ...schedule,
@@ -98,14 +156,19 @@ export const convertScheduleDate = (schedule: any) => {
     start_date: formattedStartTime,
     end_date: formattedEndTime,
     
-    // 편의를 위한 추가 필드들
-    formattedStartDateTime: dateUtils.combineDateTime(formattedDate, formattedStartTime),
-    formattedEndDateTime: dateUtils.combineDateTime(formattedDate, formattedEndTime),
+    // ISO datetime 형식으로 변환된 필드들
+    startDate,
+    endDate,
     
     // 원본 startTime, endTime 필드는 제거 (1970 문제 해결)
     startTime: undefined,
     endTime: undefined
   };
+};
+
+// endDate 정보를 저장하는 헬퍼 함수
+export const storeEndDateInfo = (scheduleId: string, endDatetime: string) => {
+  scheduleEndDateMap.set(scheduleId, endDatetime);
 };
 
 // Kafka 이벤트용 날짜 변환 함수
