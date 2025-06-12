@@ -13,7 +13,7 @@ const LoginForm = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!username.trim() || !password.trim()) {
       toast({
         title: "입력 오류",
@@ -24,10 +24,10 @@ const LoginForm = () => {
     }
 
     setIsLoading(true);
-    
+
     try {
-      const success = await login(username, password);
-      
+      const success = await login({ username, password });
+
       if (success) {
         toast({
           title: "로그인 성공",

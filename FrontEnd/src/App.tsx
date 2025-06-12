@@ -53,7 +53,7 @@ const AppRoutes: React.FC = () => {
   useEffect(() => {
     // 네비게이션 함수를 Auth Store에 제공
     setNavigate(navigate);
-    
+
     // 앱 초기화 시 인증 상태 확인
     initializeAuth();
   }, [navigate, setNavigate, initializeAuth]);
@@ -78,7 +78,7 @@ const App: React.FC = () => {
 
     // 앱 메타데이터 설정
     document.title = 'Calendar App';
-    
+
     // 다크모드 감지 및 초기 설정
     const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
     if (isDarkMode) {
@@ -150,19 +150,19 @@ const App: React.FC = () => {
           <BrowserRouter>
             <AppRoutes />
           </BrowserRouter>
-          
+
           {/* Toast 알림 시스템 */}
           <Toaster />
-          <Sonner 
+          <Sonner
             position="top-right"
             closeButton
             richColors
             theme="system"
           />
-          
+
           {/* React Query 개발 도구 (개발 환경에서만) */}
           {process.env.NODE_ENV === 'development' && (
-            <ReactQueryDevtools 
+            <ReactQueryDevtools
               initialIsOpen={false}
               position="bottom"
             />
