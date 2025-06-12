@@ -28,6 +28,7 @@
     "cors": "^2.8.5",
     "dotenv": "^16.0.3",
     "express": "^4.18.2",
+    "joi": "^17.13.3",
     "jsonwebtoken": "^9.0.0",
     "kafkajs": "^2.2.4",
     "morgan": "^1.10.0"
@@ -35,6 +36,7 @@
   "devDependencies": {
     "@types/cors": "^2.8.13",
     "@types/express": "^4.17.17",
+    "@types/joi": "^17.2.3",
     "@types/jsonwebtoken": "^9.0.1",
     "@types/morgan": "^1.9.4",
     "@types/node": "^18.19.110",
@@ -44,7 +46,13 @@
     "ts-node": "^10.9.1",
     "typescript": "^5.0.4"
   },
-  "keywords": ["calendar", "api", "typescript", "express", "prisma"],
+  "keywords": [
+    "calendar",
+    "api",
+    "typescript",
+    "express",
+    "prisma"
+  ],
   "author": "",
   "license": "ISC"
 }

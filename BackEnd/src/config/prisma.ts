@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { logger } from '../services/logger';
+import { AppErrorType, classifyError, extractErrorMessage } from '../types/errors';
 
 const prisma = new PrismaClient({
   log: process.env.NODE_ENV === 'development' ? ['error'] : [],
@@ -11,8 +12,15 @@ async function testConnection(): Promise<boolean> {
     await prisma.$queryRaw`SELECT 1`;
     logger.info('Database connection established successfully', 'DATABASE');
     return true;
-  } catch (error) {
-    logger.error('Database connection failed', 'DATABASE', error);
+  } catch (error: unknown) {
+    const classifiedError = classifyError(error);
+    const errorMessage = extractErrorMessage(classifiedError);
+    
+    logger.error('Database connection failed', 'DATABASE', {
+      error: errorMessage,
+      type: classifiedError.constructor.name
+    });
+    
     return false;
   }
 }
@@ -22,9 +30,16 @@ async function seedDatabase(): Promise<void> {
     await seedUsers();
     await seedProjects();
     logger.info('Database seeding completed successfully', 'DATABASE');
-  } catch (error) {
-    logger.error('Database seeding failed', 'DATABASE', error);
-    throw error;
+  } catch (error: unknown) {
+    const classifiedError = classifyError(error);
+    const errorMessage = extractErrorMessage(classifiedError);
+    
+    logger.error('Database seeding failed', 'DATABASE', {
+      error: errorMessage,
+      type: classifiedError.constructor.name
+    });
+    
+    throw new Error(`Database seeding failed: ${errorMessage}`);
   }
 }
 

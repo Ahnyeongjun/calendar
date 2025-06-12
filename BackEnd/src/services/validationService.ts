@@ -1,143 +1,495 @@
-import { Status, Priority } from '@prisma/client';
+import Joi from 'joi';
 import { ValidationError } from '../middleware/errorHandler';
-import ScheduleTransformer, { ScheduleApiRequest } from './dataTransformer';
 
-interface ScheduleValidationData {
-  title?: string;
-  description?: string;
-  date?: string;
-  start_date?: string;
-  end_date?: string;
-  status?: string;
-  priority?: string;
-  project_id?: string;
+export interface LoginData {
+  username: string;
+  password: string;
 }
 
-interface ProjectValidationData {
+export interface CreateUserData {
+  username: string;
+  password: string;
+  name: string;
+}
+
+export interface UpdateUserData {
+  name?: string;
+  password?: string;
+}
+
+export interface CreateProjectData {
+  name: string;
+  description?: string;
+  color?: string;
+}
+
+export interface UpdateProjectData {
   name?: string;
   description?: string;
   color?: string;
 }
 
+export interface CreateScheduleData {
+  title: string;
+  description?: string;
+  startDate: string;
+  endDate: string;
+  projectId: string;
+  userId: string;
+}
+
+export interface UpdateScheduleData {
+  title?: string;
+  description?: string;
+  startDate?: string;
+  endDate?: string;
+  projectId?: string;
+}
+
+export interface QueryParams {
+  page?: number;
+  limit?: number;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+  search?: string;
+  startDate?: string;
+  endDate?: string;
+  projectId?: string;
+}
+
 class ValidationService {
-  // 필수 필드 검증
-  static validateRequired(data: any, fields: string[]): void {
-    const missing = fields.filter(field => !data[field] || data[field].toString().trim() === '');
-    
-    if (missing.length > 0) {
-      throw new ValidationError(`다음 필드는 필수입니다: ${missing.join(', ')}`);
+  // 스키마 정의
+  private static schemas = {
+    login: Joi.object({
+      username: Joi.string()
+        .alphanum()
+        .min(3)
+        .max(30)
+        .required()
+        .messages({
+          'string.alphanum': '사용자명은 영문자와 숫자만 포함할 수 있습니다',
+          'string.min': '사용자명은 최소 3자 이상이어야 합니다',
+          'string.max': '사용자명은 최대 30자까지 가능합니다',
+          'any.required': '사용자명은 필수입니다'
+        }),
+      password: Joi.string()
+        .min(4)
+        .max(100)
+        .required()
+        .messages({
+          'string.min': '비밀번호는 최소 4자 이상이어야 합니다',
+          'string.max': '비밀번호는 최대 100자까지 가능합니다',
+          'any.required': '비밀번호는 필수입니다'
+        })
+    }),
+
+    createUser: Joi.object({
+      username: Joi.string()
+        .alphanum()
+        .min(3)
+        .max(30)
+        .required()
+        .messages({
+          'string.alphanum': '사용자명은 영문자와 숫자만 포함할 수 있습니다',
+          'string.min': '사용자명은 최소 3자 이상이어야 합니다',
+          'string.max': '사용자명은 최대 30자까지 가능합니다',
+          'any.required': '사용자명은 필수입니다'
+        }),
+      password: Joi.string()
+        .min(4)
+        .max(100)
+        .required()
+        .messages({
+          'string.min': '비밀번호는 최소 4자 이상이어야 합니다',
+          'string.max': '비밀번호는 최대 100자까지 가능합니다',
+          'any.required': '비밀번호는 필수입니다'
+        }),
+      name: Joi.string()
+        .min(1)
+        .max(100)
+        .required()
+        .messages({
+          'string.min': '이름은 최소 1자 이상이어야 합니다',
+          'string.max': '이름은 최대 100자까지 가능합니다',
+          'any.required': '이름은 필수입니다'
+        })
+    }),
+
+    updateUser: Joi.object({
+      name: Joi.string()
+        .min(1)
+        .max(100)
+        .messages({
+          'string.min': '이름은 최소 1자 이상이어야 합니다',
+          'string.max': '이름은 최대 100자까지 가능합니다'
+        }),
+      password: Joi.string()
+        .min(4)
+        .max(100)
+        .messages({
+          'string.min': '비밀번호는 최소 4자 이상이어야 합니다',
+          'string.max': '비밀번호는 최대 100자까지 가능합니다'
+        })
+    }).min(1).messages({
+      'object.min': '수정할 정보를 입력해주세요'
+    }),
+
+    createProject: Joi.object({
+      name: Joi.string()
+        .min(1)
+        .max(100)
+        .required()
+        .messages({
+          'string.min': '프로젝트명은 최소 1자 이상이어야 합니다',
+          'string.max': '프로젝트명은 최대 100자까지 가능합니다',
+          'any.required': '프로젝트명은 필수입니다'
+        }),
+      description: Joi.string()
+        .max(500)
+        .allow('')
+        .messages({
+          'string.max': '설명은 최대 500자까지 가능합니다'
+        }),
+      color: Joi.string()
+        .pattern(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/)
+        .messages({
+          'string.pattern.base': '색상은 유효한 헥스 코드여야 합니다 (예: #FF0000)'
+        })
+    }),
+
+    updateProject: Joi.object({
+      name: Joi.string()
+        .min(1)
+        .max(100)
+        .messages({
+          'string.min': '프로젝트명은 최소 1자 이상이어야 합니다',
+          'string.max': '프로젝트명은 최대 100자까지 가능합니다'
+        }),
+      description: Joi.string()
+        .max(500)
+        .allow('')
+        .messages({
+          'string.max': '설명은 최대 500자까지 가능합니다'
+        }),
+      color: Joi.string()
+        .pattern(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/)
+        .messages({
+          'string.pattern.base': '색상은 유효한 헥스 코드여야 합니다 (예: #FF0000)'
+        })
+    }).min(1).messages({
+      'object.min': '수정할 정보를 입력해주세요'
+    }),
+
+    createSchedule: Joi.object({
+      title: Joi.string()
+        .min(1)
+        .max(200)
+        .required()
+        .messages({
+          'string.min': '제목은 최소 1자 이상이어야 합니다',
+          'string.max': '제목은 최대 200자까지 가능합니다',
+          'any.required': '제목은 필수입니다'
+        }),
+      description: Joi.string()
+        .max(1000)
+        .allow('')
+        .messages({
+          'string.max': '설명은 최대 1000자까지 가능합니다'
+        }),
+      startDate: Joi.date()
+        .iso()
+        .required()
+        .messages({
+          'date.format': '시작일은 유효한 ISO 날짜 형식이어야 합니다',
+          'any.required': '시작일은 필수입니다'
+        }),
+      endDate: Joi.date()
+        .iso()
+        .min(Joi.ref('startDate'))
+        .required()
+        .messages({
+          'date.format': '종료일은 유효한 ISO 날짜 형식이어야 합니다',
+          'date.min': '종료일은 시작일보다 이후여야 합니다',
+          'any.required': '종료일은 필수입니다'
+        }),
+      projectId: Joi.string()
+        .required()
+        .messages({
+          'any.required': '프로젝트 ID는 필수입니다'
+        }),
+      userId: Joi.string()
+        .required()
+        .messages({
+          'any.required': '사용자 ID는 필수입니다'
+        })
+    }),
+
+    updateSchedule: Joi.object({
+      title: Joi.string()
+        .min(1)
+        .max(200)
+        .messages({
+          'string.min': '제목은 최소 1자 이상이어야 합니다',
+          'string.max': '제목은 최대 200자까지 가능합니다'
+        }),
+      description: Joi.string()
+        .max(1000)
+        .allow('')
+        .messages({
+          'string.max': '설명은 최대 1000자까지 가능합니다'
+        }),
+      startDate: Joi.date()
+        .iso()
+        .messages({
+          'date.format': '시작일은 유효한 ISO 날짜 형식이어야 합니다'
+        }),
+      endDate: Joi.date()
+        .iso()
+        .when('startDate', {
+          is: Joi.exist(),
+          then: Joi.date().min(Joi.ref('startDate')),
+          otherwise: Joi.date()
+        })
+        .messages({
+          'date.format': '종료일은 유효한 ISO 날짜 형식이어야 합니다',
+          'date.min': '종료일은 시작일보다 이후여야 합니다'
+        }),
+      projectId: Joi.string()
+    }).min(1).messages({
+      'object.min': '수정할 정보를 입력해주세요'
+    }),
+
+    queryParams: Joi.object({
+      page: Joi.number()
+        .integer()
+        .min(1)
+        .default(1)
+        .messages({
+          'number.base': '페이지는 숫자여야 합니다',
+          'number.integer': '페이지는 정수여야 합니다',
+          'number.min': '페이지는 1 이상이어야 합니다'
+        }),
+      limit: Joi.number()
+        .integer()
+        .min(1)
+        .max(100)
+        .default(10)
+        .messages({
+          'number.base': '제한 수는 숫자여야 합니다',
+          'number.integer': '제한 수는 정수여야 합니다',
+          'number.min': '제한 수는 1 이상이어야 합니다',
+          'number.max': '제한 수는 100 이하여야 합니다'
+        }),
+      sortBy: Joi.string()
+        .valid('createdAt', 'updatedAt', 'title', 'startDate', 'endDate', 'name')
+        .default('createdAt')
+        .messages({
+          'any.only': '정렬 기준은 createdAt, updatedAt, title, startDate, endDate, name 중 하나여야 합니다'
+        }),
+      sortOrder: Joi.string()
+        .valid('asc', 'desc')
+        .default('desc')
+        .messages({
+          'any.only': '정렬 순서는 asc 또는 desc여야 합니다'
+        }),
+      search: Joi.string()
+        .max(100)
+        .allow('')
+        .messages({
+          'string.max': '검색어는 최대 100자까지 가능합니다'
+        }),
+      startDate: Joi.date()
+        .iso()
+        .messages({
+          'date.format': '시작일은 유효한 ISO 날짜 형식이어야 합니다'
+        }),
+      endDate: Joi.date()
+        .iso()
+        .min(Joi.ref('startDate'))
+        .messages({
+          'date.format': '종료일은 유효한 ISO 날짜 형식이어야 합니다',
+          'date.min': '종료일은 시작일보다 이후여야 합니다'
+        }),
+      projectId: Joi.string()
+    }),
+
+    id: Joi.string()
+      .required()
+      .messages({
+        'any.required': 'ID는 필수입니다',
+        'string.base': 'ID는 문자열이어야 합니다'
+      }),
+
+    // 단일 값 검증용 스키마들
+    email: Joi.string()
+      .email()
+      .messages({
+        'string.email': '유효한 이메일 주소를 입력해주세요'
+      }),
+
+    positiveInteger: Joi.number()
+      .integer()
+      .min(1)
+      .messages({
+        'number.base': '숫자를 입력해주세요',
+        'number.integer': '정수를 입력해주세요',
+        'number.min': '1 이상의 숫자를 입력해주세요'
+      }),
+
+    hexColor: Joi.string()
+      .pattern(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/)
+      .messages({
+        'string.pattern.base': '유효한 헥스 코드를 입력해주세요 (예: #FF0000)'
+      })
+  };
+
+  // 일반적인 검증 메서드 (ObjectSchema용)
+  private static validate<T>(schema: Joi.ObjectSchema, data: any): T {
+    const { error, value } = schema.validate(data, {
+      abortEarly: false,
+      stripUnknown: true,
+      convert: true
+    });
+
+    if (error) {
+      const errors: Record<string, string[]> = {};
+      
+      error.details.forEach(detail => {
+        const field = detail.path.join('.');
+        if (!errors[field]) {
+          errors[field] = [];
+        }
+        errors[field].push(detail.message);
+      });
+
+      throw new ValidationError('입력 데이터가 유효하지 않습니다', errors);
     }
+
+    return value as T;
   }
 
-  // 스케줄 데이터 검증
-  static validateScheduleData(data: ScheduleValidationData, isUpdate = false): void {
-    if (!isUpdate) {
-      this.validateRequired(data, ['title', 'date', 'status', 'priority']);
+  // 단일 값 검증 메서드 (StringSchema, NumberSchema 등)
+  private static validateSingle<T>(schema: Joi.Schema, data: any): T {
+    const { error, value } = schema.validate(data, {
+      abortEarly: false,
+      convert: true
+    });
+
+    if (error) {
+      const errorMessage = error.details[0]?.message || '값이 유효하지 않습니다';
+      throw new ValidationError(errorMessage, { value: [errorMessage] });
     }
 
-    // 제목 길이 검증
-    if (data.title !== undefined) {
-      if (data.title.trim().length === 0) {
-        throw new ValidationError('제목은 필수입니다.');
-      }
-      if (data.title.length > 100) {
-        throw new ValidationError('제목은 100자를 초과할 수 없습니다.');
-      }
-    }
-
-    // 설명 길이 검증
-    if (data.description !== undefined) {
-      if (data.description && data.description.length > 500) {
-        throw new ValidationError('설명은 500자를 초과할 수 없습니다.');
-      }
-    }
-
-    // 상태 검증
-    if (data.status !== undefined) {
-      const validStatuses = Object.values(Status);
-      if (!validStatuses.includes(data.status as Status)) {
-        throw new ValidationError(`유효하지 않은 상태입니다. 가능한 값: ${validStatuses.join(', ')}`);
-      }
-    }
-
-    // 우선순위 검증
-    if (data.priority !== undefined) {
-      const validPriorities = Object.values(Priority);
-      if (!validPriorities.includes(data.priority as Priority)) {
-        throw new ValidationError(`유효하지 않은 우선순위입니다. 가능한 값: ${validPriorities.join(', ')}`);
-      }
-    }
-
-    // ScheduleTransformer의 검증 메서드 사용
-    try {
-      // 타입 호환성을 위한 변환
-      const apiData: Partial<ScheduleApiRequest> = {};
-      
-      if (data.title !== undefined) apiData.title = data.title;
-      if (data.description !== undefined) apiData.description = data.description;
-      if (data.date !== undefined) apiData.date = data.date;
-      if (data.start_date !== undefined) apiData.start_date = data.start_date;
-      if (data.end_date !== undefined) apiData.end_date = data.end_date;
-      if (data.status !== undefined) apiData.status = data.status as Status;
-      if (data.priority !== undefined) apiData.priority = data.priority as Priority;
-      if (data.project_id !== undefined) apiData.project_id = data.project_id;
-      
-      ScheduleTransformer.validateApiRequest(apiData);
-    } catch (error) {
-      throw new ValidationError((error as Error).message);
-    }
-  }
-
-  // 프로젝트 데이터 검증
-  static validateProjectData(data: ProjectValidationData, isUpdate = false): void {
-    if (!isUpdate) {
-      this.validateRequired(data, ['name', 'color']);
-    }
-
-    // 이름 검증
-    if (data.name !== undefined) {
-      if (data.name.trim().length === 0) {
-        throw new ValidationError('프로젝트 이름은 필수입니다.');
-      }
-      if (data.name.length > 50) {
-        throw new ValidationError('프로젝트 이름은 50자를 초과할 수 없습니다.');
-      }
-    }
-
-    // 설명 검증
-    if (data.description !== undefined) {
-      if (data.description && data.description.length > 200) {
-        throw new ValidationError('프로젝트 설명은 200자를 초과할 수 없습니다.');
-      }
-    }
-
-    // 색상 검증
-    if (data.color !== undefined) {
-      const colorRegex = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
-      if (!colorRegex.test(data.color)) {
-        throw new ValidationError('유효하지 않은 색상 형식입니다. (#RRGGBB)');
-      }
-    }
+    return value as T;
   }
 
   // 로그인 데이터 검증
-  static validateLoginData(data: { username?: string; password?: string }): void {
-    this.validateRequired(data, ['username', 'password']);
-
-    if (data.username && data.username.length < 3) {
-      throw new ValidationError('사용자명은 3자 이상이어야 합니다.');
-    }
-
-    if (data.password && data.password.length < 4) {
-      throw new ValidationError('비밀번호는 4자 이상이어야 합니다.');
-    }
+  static validateLoginData(data: any): LoginData {
+    return this.validate<LoginData>(this.schemas.login, data);
   }
 
-  // ID 형식 검증
-  static validateId(id: string): void {
-    if (!id || id.trim().length === 0) {
-      throw new ValidationError('ID는 필수입니다.');
+  // 사용자 생성 데이터 검증
+  static validateCreateUserData(data: any): CreateUserData {
+    return this.validate<CreateUserData>(this.schemas.createUser, data);
+  }
+
+  // 사용자 업데이트 데이터 검증
+  static validateUpdateUserData(data: any): UpdateUserData {
+    return this.validate<UpdateUserData>(this.schemas.updateUser, data);
+  }
+
+  // 프로젝트 생성 데이터 검증
+  static validateCreateProjectData(data: any): CreateProjectData {
+    return this.validate<CreateProjectData>(this.schemas.createProject, data);
+  }
+
+  // 프로젝트 업데이트 데이터 검증
+  static validateUpdateProjectData(data: any): UpdateProjectData {
+    return this.validate<UpdateProjectData>(this.schemas.updateProject, data);
+  }
+
+  // 스케줄 생성 데이터 검증
+  static validateCreateScheduleData(data: any): CreateScheduleData {
+    return this.validate<CreateScheduleData>(this.schemas.createSchedule, data);
+  }
+
+  // 스케줄 업데이트 데이터 검증
+  static validateUpdateScheduleData(data: any): UpdateScheduleData {
+    return this.validate<UpdateScheduleData>(this.schemas.updateSchedule, data);
+  }
+
+  // 쿼리 파라미터 검증
+  static validateQueryParams(data: any): QueryParams {
+    return this.validate<QueryParams>(this.schemas.queryParams, data);
+  }
+
+  // ID 검증
+  static validateId(data: any): string {
+    return this.validateSingle<string>(this.schemas.id, data);
+  }
+
+  // 이메일 검증 (단일 값)
+  static validateEmailSingle(data: any): string {
+    return this.validateSingle<string>(this.schemas.email, data);
+  }
+
+  // 양의 정수 검증
+  static validatePositiveInteger(data: any): number {
+    return this.validateSingle<number>(this.schemas.positiveInteger, data);
+  }
+
+  // 헥스 코드 검증
+  static validateHexColorSingle(data: any): string {
+    return this.validateSingle<string>(this.schemas.hexColor, data);
+  }
+
+  // 커스텀 검증 메서드들
+  static validateEmail(email: string): boolean {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  }
+
+  static validatePassword(password: string): {
+    isValid: boolean;
+    errors: string[];
+  } {
+    const errors: string[] = [];
+
+    if (password.length < 8) {
+      errors.push('비밀번호는 최소 8자 이상이어야 합니다');
     }
+
+    if (!/[A-Z]/.test(password)) {
+      errors.push('비밀번호는 최소 1개의 대문자를 포함해야 합니다');
+    }
+
+    if (!/[a-z]/.test(password)) {
+      errors.push('비밀번호는 최소 1개의 소문자를 포함해야 합니다');
+    }
+
+    if (!/\d/.test(password)) {
+      errors.push('비밀번호는 최소 1개의 숫자를 포함해야 합니다');
+    }
+
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+      errors.push('비밀번호는 최소 1개의 특수문자를 포함해야 합니다');
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors
+    };
+  }
+
+  static validateDateRange(startDate: string, endDate: string): boolean {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    return start < end;
+  }
+
+  static validateHexColor(color: string): boolean {
+    const hexRegex = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
+    return hexRegex.test(color);
   }
 }
 

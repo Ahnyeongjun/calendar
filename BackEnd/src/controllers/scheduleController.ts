@@ -50,7 +50,7 @@ class ScheduleController {
 
   private static async validateOwnership(scheduleId: string, userId: string): Promise<any> {
     const schedule = await ScheduleModel.findById(scheduleId);
-    
+
     if (!schedule) {
       throw new NotFoundError('일정을 찾을 수 없습니다.');
     }
@@ -88,9 +88,9 @@ class ScheduleController {
     const schedules = await ScheduleModel.findAll(filters);
     const processedSchedules = schedules.map(convertScheduleDate);
 
-    res.json({ 
+    res.json({
       success: true,
-      schedules: processedSchedules 
+      schedules: processedSchedules
     });
   });
 
@@ -98,23 +98,23 @@ class ScheduleController {
     ValidationService.validateId(req.params.id);
 
     const schedule = await ScheduleModel.findById(req.params.id);
-    
+
     if (!schedule) {
       throw new NotFoundError('일정을 찾을 수 없습니다.');
     }
 
-    res.json({ 
+    res.json({
       success: true,
-      schedule: convertScheduleDate(schedule) 
+      schedule: convertScheduleDate(schedule)
     });
   });
 
   static createSchedule = asyncHandler(async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     ScheduleController.validateAuthentication(req);
-    ValidationService.validateScheduleData(req.body);
+    ValidationService.validateCreateScheduleData(req.body);
 
     const scheduleData = ScheduleTransformer.apiToCreateData(req.body, req.user!.id);
-    
+
     // 시간 검증
     ScheduleTransformer.validateTimes(scheduleData.startTime, scheduleData.endTime);
     ScheduleTransformer.validateDate(scheduleData.date);
@@ -132,7 +132,7 @@ class ScheduleController {
     // 응답 데이터에 date 변환 적용
     const responseSchedule = convertScheduleDate(newSchedule);
 
-    res.status(201).json({ 
+    res.status(201).json({
       success: true,
       schedule: responseSchedule
     });
@@ -141,20 +141,20 @@ class ScheduleController {
   static updateSchedule = asyncHandler(async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     ScheduleController.validateAuthentication(req);
     ValidationService.validateId(req.params.id);
-    ValidationService.validateScheduleData(req.body, true);
+    ValidationService.validateUpdateScheduleData(req.body);
 
     const { id } = req.params;
-    
+
     // 소유권 검증 및 기존 데이터 가져오기
     const existingSchedule = await ScheduleController.validateOwnership(id, req.user!.id);
 
     const updateData = ScheduleTransformer.partialApiToUpdateData(req.body);
-    
+
     // 시간 검증 (업데이트되는 경우에만)
     if (updateData.startTime !== undefined || updateData.endTime !== undefined) {
       ScheduleTransformer.validateUpdateTimes(updateData, existingSchedule);
     }
-    
+
     if (updateData.date !== undefined) {
       ScheduleTransformer.validateDate(updateData.date);
     }
@@ -176,9 +176,9 @@ class ScheduleController {
     // 응답 데이터에 date 변환 적용
     const responseSchedule = convertScheduleDate(updatedSchedule);
 
-    res.json({ 
+    res.json({
       success: true,
-      schedule: responseSchedule 
+      schedule: responseSchedule
     });
   });
 
@@ -187,12 +187,12 @@ class ScheduleController {
     ValidationService.validateId(req.params.id);
 
     const { id } = req.params;
-    
+
     // 소유권 검증 및 기존 일정 정보 가져오기
     const existingSchedule = await ScheduleController.validateOwnership(id, req.user!.id);
 
     const result = await ScheduleModel.delete(id);
-    
+
     if (!result) {
       throw new NotFoundError('일정을 찾을 수 없습니다.');
     }
@@ -200,9 +200,9 @@ class ScheduleController {
     // Kafka 이벤트 발행
     await ScheduleController.publishKafkaEvent(existingSchedule, 'DELETE');
 
-    res.json({ 
+    res.json({
       success: true,
-      message: '일정이 삭제되었습니다.' 
+      message: '일정이 삭제되었습니다.'
     });
   });
 }

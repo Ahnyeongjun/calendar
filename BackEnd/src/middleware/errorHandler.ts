@@ -1,108 +1,226 @@
 import { Request, Response, NextFunction } from 'express';
+import { randomUUID } from 'crypto';
+import { logger } from '../services/logger';
+import { ApiResponse } from '../types/common';
 
-export interface AppError extends Error {
-  statusCode: number;
-  isOperational: boolean;
-}
-
-export class ValidationError extends Error {
-  statusCode = 400;
-  isOperational = true;
-
-  constructor(message: string) {
-    super(message);
-    this.name = 'ValidationError';
+// Request에 requestId와 user 추가
+declare global {
+  namespace Express {
+    interface Request {
+      requestId: string;
+      startTime: number;
+      user?: {
+        id: string;
+        username: string;
+        name: string;
+      };
+    }
   }
 }
 
-export class NotFoundError extends Error {
-  statusCode = 404;
-  isOperational = true;
-
-  constructor(message: string = '리소스를 찾을 수 없습니다.') {
-    super(message);
-    this.name = 'NotFoundError';
-  }
-}
-
-export class UnauthorizedError extends Error {
-  statusCode = 401;
-  isOperational = true;
-
-  constructor(message: string = '인증이 필요합니다.') {
-    super(message);
-    this.name = 'UnauthorizedError';
-  }
-}
-
-export class ForbiddenError extends Error {
-  statusCode = 403;
-  isOperational = true;
-
-  constructor(message: string = '권한이 없습니다.') {
-    super(message);
-    this.name = 'ForbiddenError';
-  }
-}
-
-// 전역 에러 처리 미들웨어
-export const errorHandler = (
-  error: any,
-  req: Request,
-  res: Response,
-  next: NextFunction
-): void => {
-  let statusCode = 500;
-  let message = '서버 내부 오류가 발생했습니다.';
-
-  // 알려진 에러 타입들 처리
-  if (error.isOperational) {
-    statusCode = error.statusCode;
-    message = error.message;
-  } else if (error.name === 'ValidationError') {
-    statusCode = 400;
-    message = error.message;
-  } else if (error.name === 'CastError') {
-    statusCode = 400;
-    message = '잘못된 ID 형식입니다.';
-  } else if (error.code === 11000) {
-    statusCode = 409;
-    message = '이미 존재하는 데이터입니다.';
-  }
-
-  // 개발 환경에서는 상세한 에러 정보 출력
-  if (process.env.NODE_ENV === 'development') {
-    console.error('Error Details:', {
-      name: error.name,
-      message: error.message,
-      stack: error.stack,
-      statusCode,
-      url: req.url,
-      method: req.method
-    });
-  }
-
-  res.status(statusCode).json({
-    success: false,
-    message,
-    ...(process.env.NODE_ENV === 'development' && { 
-      stack: error.stack,
-      error: error 
-    })
-  });
+// Request ID 미들웨어
+export const requestIdMiddleware = (req: Request, res: Response, next: NextFunction): void => {
+  req.requestId = randomUUID();
+  req.startTime = Date.now();
+  
+  res.setHeader('X-Request-ID', req.requestId);
+  next();
 };
 
-// 404 에러 처리 미들웨어
-export const notFoundHandler = (req: Request, res: Response): void => {
-  res.status(404).json({
-    success: false,
-    message: `경로 ${req.originalUrl}을 찾을 수 없습니다.`
+// HTTP 로깅 미들웨어
+export const httpLoggingMiddleware = (req: Request, res: Response, next: NextFunction): void => {
+  const originalSend = res.send;
+  let responseBody: any;
+
+  res.send = function(body: any) {
+    responseBody = body;
+    return originalSend.call(this, body);
+  };
+
+  res.on('finish', () => {
+    const responseTime = Date.now() - req.startTime;
+    const userId = req.user?.id;
+    
+    logger.http(
+      req.method,
+      req.originalUrl,
+      res.statusCode,
+      responseTime,
+      req.requestId,
+      userId
+    );
+
+    // 에러 응답의 경우 상세 로깅
+    if (res.statusCode >= 400) {
+      const logContext = logger.createContext('HTTP_ERROR', req.requestId, userId);
+      logContext.warn('HTTP Error Response', {
+        method: req.method,
+        url: req.originalUrl,
+        statusCode: res.statusCode,
+        requestBody: req.body,
+        responseBody: typeof responseBody === 'string' ? JSON.parse(responseBody) : responseBody,
+        userAgent: req.get('User-Agent'),
+        ip: req.ip
+      });
+    }
   });
+
+  next();
 };
 
-// 비동기 에러를 자동으로 catch하는 래퍼
+// 에러 처리 클래스들
+export class AppError extends Error {
+  public readonly statusCode: number;
+  public readonly isOperational: boolean;
+  public readonly code?: string;
+
+  constructor(
+    message: string,
+    statusCode: number = 500,
+    isOperational: boolean = true,
+    code?: string
+  ) {
+    super(message);
+    this.statusCode = statusCode;
+    this.isOperational = isOperational;
+    this.code = code;
+
+    Error.captureStackTrace(this, this.constructor);
+  }
+}
+
+export class ValidationError extends AppError {
+  public readonly errors: Record<string, string[]>;
+
+  constructor(message: string = 'Validation failed', errors: Record<string, string[]> = {}) {
+    super(message, 400, true, 'VALIDATION_ERROR');
+    this.errors = errors;
+  }
+}
+
+export class UnauthorizedError extends AppError {
+  constructor(message: string = 'Unauthorized') {
+    super(message, 401, true, 'UNAUTHORIZED');
+  }
+}
+
+export class ForbiddenError extends AppError {
+  constructor(message: string = 'Forbidden') {
+    super(message, 403, true, 'FORBIDDEN');
+  }
+}
+
+export class NotFoundError extends AppError {
+  constructor(message: string = 'Resource not found') {
+    super(message, 404, true, 'NOT_FOUND');
+  }
+}
+
+export class ConflictError extends AppError {
+  constructor(message: string = 'Resource conflict') {
+    super(message, 409, true, 'CONFLICT');
+  }
+}
+
+export class TooManyRequestsError extends AppError {
+  constructor(message: string = 'Too many requests') {
+    super(message, 429, true, 'TOO_MANY_REQUESTS');
+  }
+}
+
+export class InternalServerError extends AppError {
+  constructor(message: string = 'Internal server error') {
+    super(message, 500, true, 'INTERNAL_SERVER_ERROR');
+  }
+}
+
+// 비동기 함수 래퍼
 export const asyncHandler = (fn: Function) => {
   return (req: Request, res: Response, next: NextFunction) => {
     Promise.resolve(fn(req, res, next)).catch(next);
   };
+};
+
+// 404 핸들러
+export const notFoundHandler = (req: Request, res: Response, next: NextFunction): void => {
+  const error = new NotFoundError(`Endpoint ${req.method} ${req.originalUrl} not found`);
+  next(error);
+};
+
+// 전역 에러 핸들러
+export const errorHandler = (
+  error: Error | AppError,
+  req: Request,
+  res: Response,
+  next: NextFunction
+): void => {
+  const logContext = logger.createContext('ERROR_HANDLER', req.requestId, req.user?.id);
+
+  // AppError 인스턴스인지 확인
+  if (error instanceof AppError) {
+    const response: ApiResponse = {
+      success: false,
+      error: error.message,
+      timestamp: new Date().toISOString(),
+      requestId: req.requestId
+    };
+
+    // ValidationError의 경우 errors 필드 추가
+    if (error instanceof ValidationError) {
+      response.errors = error.errors;
+    }
+
+    // 클라이언트 에러는 WARN, 서버 에러는 ERROR 레벨로 로깅
+    if (error.statusCode >= 500) {
+      logContext.error('Application Error', {
+        message: error.message,
+        statusCode: error.statusCode,
+        code: error.code,
+        stack: error.stack,
+        url: req.originalUrl,
+        method: req.method,
+        body: req.body
+      });
+    } else {
+      logContext.warn('Client Error', {
+        message: error.message,
+        statusCode: error.statusCode,
+        code: error.code,
+        url: req.originalUrl,
+        method: req.method
+      });
+    }
+
+    res.status(error.statusCode).json(response);
+    return;
+  }
+
+  // 일반 Error 처리
+  logContext.error('Unhandled Error', {
+    message: error.message,
+    stack: error.stack,
+    url: req.originalUrl,
+    method: req.method,
+    body: req.body
+  });
+
+  const response: ApiResponse = {
+    success: false,
+    error: process.env.NODE_ENV === 'production' 
+      ? 'Internal server error' 
+      : error.message,
+    timestamp: new Date().toISOString(),
+    requestId: req.requestId
+  };
+
+  res.status(500).json(response);
+};
+
+// 에러 핸들러들을 하나의 객체로 내보내기
+export const errorHandlers = {
+  requestIdMiddleware,
+  httpLoggingMiddleware,
+  asyncHandler,
+  notFoundHandler,
+  errorHandler
 };

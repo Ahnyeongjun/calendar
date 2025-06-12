@@ -6,10 +6,51 @@ interface DatabaseConfig {
   url: string;
 }
 
+type Unit =
+  | "Years"
+  | "Year"
+  | "Yrs"
+  | "Yr"
+  | "Y"
+  | "Weeks"
+  | "Week"
+  | "W"
+  | "Days"
+  | "Day"
+  | "D"
+  | "Hours"
+  | "Hour"
+  | "Hrs"
+  | "Hr"
+  | "H"
+  | "Minutes"
+  | "Minute"
+  | "Mins"
+  | "Min"
+  | "M"
+  | "Seconds"
+  | "Second"
+  | "Secs"
+  | "Sec"
+  | "s"
+  | "Milliseconds"
+  | "Millisecond"
+  | "Msecs"
+  | "Msec"
+  | "Ms";
+
+type UnitAnyCase = Unit | Uppercase<Unit> | Lowercase<Unit>;
+
+type StringValue =
+  | `${number}`
+  | `${number}${UnitAnyCase}`
+  | `${number} ${UnitAnyCase}`;  // JWT 라이브러리가 허용하는 타입으로 확장
+
 interface JwtConfig {
   secret: string;
-  expiresIn: string;
+  expiresIn: StringValue | number;
 }
+
 
 interface KafkaConfig {
   enabled: boolean;
@@ -25,7 +66,7 @@ interface ServerConfig {
 
 class Config {
   private static instance: Config;
-  
+
   readonly server: ServerConfig;
   readonly database: DatabaseConfig;
   readonly jwt: JwtConfig;
@@ -45,7 +86,7 @@ class Config {
 
     this.jwt = {
       secret: this.getRequiredEnv('JWT_SECRET'),
-      expiresIn: process.env.JWT_EXPIRES_IN || '7d'
+      expiresIn: (process.env.JWT_EXPIRES_IN || '7d') as StringValue
     };
 
     this.kafka = {
@@ -73,7 +114,7 @@ class Config {
   validate(): void {
     const required = ['DATABASE_URL', 'JWT_SECRET'];
     const missing = required.filter(key => !process.env[key]);
-    
+
     if (missing.length > 0) {
       throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
     }
