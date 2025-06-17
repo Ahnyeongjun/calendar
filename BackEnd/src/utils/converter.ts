@@ -122,30 +122,32 @@ export const dateUtils = {
 // (MySQL TIME 타입의 한계로 인한 임시 해결책)
 let scheduleEndDateMap = new Map<string, string>();
 
-// 스케줄 데이터 변환 (응답용)
-export const convertScheduleDate = (schedule: any) => {
+// 스케줄 데이터 변환 (응답용) - endDate 원본 정보 유지
+export const convertScheduleDate = (schedule: any, originalEndDate?: string) => {
   const formattedDate = dateUtils.formatDate(schedule.date);
-  const formattedStartTime = timeUtils.formatTimeFromMySQL(schedule.startTime);
-  const formattedEndTime = timeUtils.formatTimeFromMySQL(schedule.endTime);
 
   // 원본 datetime 정보 복원 (UTC 시간 유지)
   let startDate = null;
   let endDate = null;
   
-  if (formattedStartTime) {
-    // UTC 시간으로 직접 생성 (시간대 변환 방지)
-    startDate = `${formattedDate}T${formattedStartTime}:00.000Z`;
+  if (schedule.startTime) {
+    const formattedStartTime = timeUtils.formatTimeFromMySQL(schedule.startTime);
+    if (formattedStartTime) {
+      startDate = `${formattedDate}T${formattedStartTime}:00.000Z`;
+    }
   }
   
-  if (formattedEndTime) {
-    // 저장된 endDate 정보가 있는지 확인
-    const storedEndDate = scheduleEndDateMap.get(schedule.id);
-    if (storedEndDate) {
-      // 원본 ISO datetime 정보 사용
-      endDate = storedEndDate;
-    } else {
-      // 기본적으로는 같은 날짜로 처리
-      endDate = `${formattedDate}T${formattedEndTime}:00.000Z`;
+  if (schedule.endTime) {
+    const formattedEndTime = timeUtils.formatTimeFromMySQL(schedule.endTime);
+    if (formattedEndTime) {
+      // 저장된 endDate 정보가 있는지 확인
+      const storedEndDate = scheduleEndDateMap.get(schedule.id) || originalEndDate;
+      if (storedEndDate) {
+        endDate = storedEndDate;
+      } else {
+        // 기본적으로는 같은 날짜로 처리
+        endDate = `${formattedDate}T${formattedEndTime}:00.000Z`;
+      }
     }
   }
 
@@ -153,8 +155,6 @@ export const convertScheduleDate = (schedule: any) => {
     ...schedule,
     // 기본 필드들
     date: formattedDate,
-    start_date: formattedStartTime,
-    end_date: formattedEndTime,
     
     // ISO datetime 형식으로 변환된 필드들
     startDate,
@@ -174,16 +174,29 @@ export const storeEndDateInfo = (scheduleId: string, endDatetime: string) => {
 // Kafka 이벤트용 날짜 변환 함수
 export const convertKafkaDate = (schedule: any) => {
   const dateStr = dateUtils.formatDate(schedule.date);
-  const startTime = timeUtils.formatTimeFromMySQL(schedule.startTime);
-  const endTime = timeUtils.formatTimeFromMySQL(schedule.endTime);
   
-  const startDateTime = startTime 
-    ? `${dateStr}T${startTime}:00.000Z`
-    : `${dateStr}T00:00:00.000Z`;
+  let startDateTime = `${dateStr}T00:00:00.000Z`;
+  let endDateTime = `${dateStr}T23:59:59.999Z`;
   
-  const endDateTime = endTime 
-    ? `${dateStr}T${endTime}:00.000Z`
-    : `${dateStr}T23:59:59.999Z`;
+  if (schedule.startTime) {
+    const startTime = timeUtils.formatTimeFromMySQL(schedule.startTime);
+    if (startTime) {
+      startDateTime = `${dateStr}T${startTime}:00.000Z`;
+    }
+  }
+  
+  if (schedule.endTime) {
+    const endTime = timeUtils.formatTimeFromMySQL(schedule.endTime);
+    if (endTime) {
+      // 저장된 endDate 정보 확인
+      const storedEndDate = scheduleEndDateMap.get(schedule.id);
+      if (storedEndDate) {
+        endDateTime = storedEndDate;
+      } else {
+        endDateTime = `${dateStr}T${endTime}:00.000Z`;
+      }
+    }
+  }
 
   return {
     startDate: startDateTime,

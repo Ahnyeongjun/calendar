@@ -1,17 +1,17 @@
 import { Input } from '@/components/ui/input';
 
 interface TimeRangePickerProps {
-  start_date: string;
-  end_date: string;
-  onStart_dateChange: (datetime: string) => void;
-  onEnd_dateChange: (datetime: string) => void;
+  startDate: string;
+  endDate: string;
+  onStartDateChange: (datetime: string) => void;
+  onEndDateChange: (datetime: string) => void;
 }
 
 export const TimeRangePicker = ({
-  start_date,
-  end_date,
-  onStart_dateChange,
-  onEnd_dateChange
+  startDate,
+  endDate,
+  onStartDateChange,
+  onEndDateChange
 }: TimeRangePickerProps) => {
   const handleInputClick = (e: React.MouseEvent) => {
     // input의 기본 클릭 동작을 막고 모달을 열도록 함
@@ -20,28 +20,28 @@ export const TimeRangePicker = ({
   };
 
   const handleStartDateChange = (value: string) => {
-    onStart_dateChange(value);
+    onStartDateChange(value);
     
     // 시작일자가 종료일자보다 늦으면 종료일자를 자동 조정
-    if (value && end_date) {
+    if (value && endDate) {
       const start = new Date(value);
-      const end = new Date(end_date);
+      const end = new Date(endDate);
       if (start > end) {
-        onEnd_dateChange(value);
+        onEndDateChange(value);
       }
     }
   };
 
   const handleEndDateChange = (value: string) => {
     // 종료일자가 시작일자보다 빠르면 업데이트 방지
-    if (value && start_date) {
-      const start = new Date(start_date);
+    if (value && startDate) {
+      const start = new Date(startDate);
       const end = new Date(value);
       if (end < start) {
         return; // 업데이트하지 않음
       }
     }
-    onEnd_dateChange(value);
+    onEndDateChange(value);
   };
 
   return (
@@ -49,7 +49,7 @@ export const TimeRangePicker = ({
       <div className="flex-1">
         <Input
           type="datetime-local"
-          value={start_date}
+          value={startDate}
           onChange={(e) => handleStartDateChange(e.target.value)}
           onClick={handleInputClick}
           className="w-full cursor-pointer"
@@ -59,7 +59,7 @@ export const TimeRangePicker = ({
       <div className="flex-1">
         <Input
           type="datetime-local"
-          value={end_date}
+          value={endDate}
           onChange={(e) => handleEndDateChange(e.target.value)}
           onClick={handleInputClick}
           className="w-full cursor-pointer"

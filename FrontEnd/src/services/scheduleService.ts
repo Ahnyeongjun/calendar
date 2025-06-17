@@ -5,23 +5,23 @@ interface ScheduleApiData {
   title: string;
   description?: string;
   date: string;
-  start_date?: string;
-  end_date?: string;
+  startDate?: string;
+  endDate?: string;
   status: string;
   priority: string;
-  project_id?: string;
+  projectId?: string;
 }
 
 class ScheduleService {
   private buildQueryString(filters: ScheduleFilters): string {
     const params = new URLSearchParams();
-    
+
     Object.entries(filters).forEach(([key, value]) => {
       if (value !== undefined && value !== null && value !== '') {
         params.append(key, value.toString());
       }
     });
-    
+
     return params.toString();
   }
 
@@ -30,11 +30,11 @@ class ScheduleService {
       title: scheduleData.title,
       description: scheduleData.description,
       date: scheduleData.date,
-      start_date: scheduleData.start_date,
-      end_date: scheduleData.end_date,
+      startDate: scheduleData.startDate,
+      endDate: scheduleData.endDate,
       status: scheduleData.status,
       priority: scheduleData.priority,
-      project_id: scheduleData.projectId
+      projectId: scheduleData.projectId || ''
     };
   }
 
@@ -44,25 +44,25 @@ class ScheduleService {
     if (scheduleData.title !== undefined) apiData.title = scheduleData.title;
     if (scheduleData.description !== undefined) apiData.description = scheduleData.description;
     if (scheduleData.date !== undefined) apiData.date = scheduleData.date;
-    if (scheduleData.start_date !== undefined) apiData.start_date = scheduleData.start_date;
-    if (scheduleData.end_date !== undefined) apiData.end_date = scheduleData.end_date;
+    if (scheduleData.startDate !== undefined) apiData.startDate = scheduleData.startDate;
+    if (scheduleData.endDate !== undefined) apiData.endDate = scheduleData.endDate;
     if (scheduleData.status !== undefined) apiData.status = scheduleData.status;
     if (scheduleData.priority !== undefined) apiData.priority = scheduleData.priority;
-    if (scheduleData.projectId !== undefined) apiData.project_id = scheduleData.projectId;
+    if (scheduleData.projectId !== undefined) apiData.projectId = scheduleData.projectId || '';
     
     return apiData;
   }
 
   async getAllSchedules(filters?: ScheduleFilters): Promise<Schedule[]> {
     let endpoint = '/schedules';
-    
+
     if (filters) {
       const queryString = this.buildQueryString(filters);
       if (queryString) {
         endpoint += `?${queryString}`;
       }
     }
-    
+
     const response = await ApiService.get<SchedulesResponse>(endpoint);
     return response.schedules || [];
   }

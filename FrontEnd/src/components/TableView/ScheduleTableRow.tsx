@@ -67,21 +67,13 @@ export const ScheduleTableRow = ({
       // ISO datetime string에서 시간만 추출
       const date = new Date(timeString);
       
-      // 유효한 날짜인지 확인 (1970년 방지)
-      if (isNaN(date.getTime()) || date.getFullYear() < 2000) {
-        // HH:mm 형태라면 그대로 반환
-        if (/^\d{2}:\d{2}$/.test(timeString)) {
-          return timeString;
-        }
+      // 유효한 날짜인지 확인
+      if (isNaN(date.getTime())) {
         return '시간 오류';
       }
       
       return format(date, 'HH:mm');
     } catch {
-      // HH:mm 형태라면 그대로 반환
-      if (/^\d{2}:\d{2}$/.test(timeString)) {
-        return timeString;
-      }
       return '시간 오류';
     }
   };
@@ -128,8 +120,8 @@ export const ScheduleTableRow = ({
         <div className="flex items-center space-x-1">
           <Clock size={14} className="text-gray-400" />
           <span>
-            {schedule.start_date && schedule.end_date 
-              ? `${formatTime(schedule.start_date)} - ${formatTime(schedule.end_date)}`
+            {schedule.startDate && schedule.endDate 
+              ? `${formatTime(schedule.startDate)} - ${formatTime(schedule.endDate)}`
               : '시간 미설정'
             }
           </span>

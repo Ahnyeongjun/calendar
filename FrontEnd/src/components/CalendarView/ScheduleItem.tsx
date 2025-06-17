@@ -23,12 +23,8 @@ export const ScheduleItem = ({
     try {
       const date = new Date(timeString);
 
-      // 유효한 날짜인지 확인 (1970년 방지)
-      if (isNaN(date.getTime()) || date.getFullYear() < 2000) {
-        // HH:mm 형태라면 그대로 반환
-        if (/^\d{2}:\d{2}$/.test(timeString)) {
-          return timeString;
-        }
+      // 유효한 날짜인지 확인
+      if (isNaN(date.getTime())) {
         return '--:--';
       }
 
@@ -38,20 +34,16 @@ export const ScheduleItem = ({
         hour12: false
       });
     } catch {
-      // HH:mm 형태라면 그대로 반환
-      if (/^\d{2}:\d{2}$/.test(timeString)) {
-        return timeString;
-      }
       return '--:--';
     }
   };
 
   const getTimeDisplay = () => {
-    console.log(schedule);
-    if (schedule.start_date && schedule.end_date) {
-      return `${formatTime(schedule.start_date)} - ${formatTime(schedule.end_date)}`;
-    } else if (schedule.start_date) {
-      return formatTime(schedule.start_date);
+    console.log('Schedule data:', schedule);
+    if (schedule.startDate && schedule.endDate) {
+      return `${formatTime(schedule.startDate)} - ${formatTime(schedule.endDate)}`;
+    } else if (schedule.startDate) {
+      return formatTime(schedule.startDate);
     } else {
       return '시간 미설정';
     }

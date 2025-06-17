@@ -15,12 +15,12 @@ async function testConnection(): Promise<boolean> {
   } catch (error: unknown) {
     const classifiedError = classifyError(error);
     const errorMessage = extractErrorMessage(classifiedError);
-    
+
     logger.error('Database connection failed', 'DATABASE', {
       error: errorMessage,
       type: classifiedError.constructor.name
     });
-    
+
     return false;
   }
 }
@@ -33,12 +33,12 @@ async function seedDatabase(): Promise<void> {
   } catch (error: unknown) {
     const classifiedError = classifyError(error);
     const errorMessage = extractErrorMessage(classifiedError);
-    
+
     logger.error('Database seeding failed', 'DATABASE', {
       error: errorMessage,
       type: classifiedError.constructor.name
     });
-    
+
     throw new Error(`Database seeding failed: ${errorMessage}`);
   }
 }

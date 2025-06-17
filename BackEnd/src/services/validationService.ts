@@ -212,16 +212,8 @@ class ValidationService {
           'date.min': '종료일은 시작일보다 이후여야 합니다',
           'any.required': '종료일은 필수입니다'
         }),
-      projectId: Joi.string()
-        .required()
-        .messages({
-          'any.required': '프로젝트 ID는 필수입니다'
-        }),
+      projectId: Joi.string(),
       userId: Joi.string()
-        .required()
-        .messages({
-          'any.required': '사용자 ID는 필수입니다'
-        })
     }),
 
     updateSchedule: Joi.object({
@@ -353,7 +345,7 @@ class ValidationService {
 
     if (error) {
       const errors: Record<string, string[]> = {};
-      
+
       error.details.forEach(detail => {
         const field = detail.path.join('.');
         if (!errors[field]) {

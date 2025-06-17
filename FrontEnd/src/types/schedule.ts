@@ -12,10 +12,8 @@ export interface Schedule {
   title: string;
   description?: string;
   date: string; // ISO date string
-  start_date?: string; // ISO string format (백엔드 API 호환 - 날짜+시간 포함)
-  end_date?: string; // ISO string format (백엔드 API 호환 - 날짜+시간 포함)
-  startDate?: string; // ISO datetime string (백엔드에서 제공하는 전체 datetime)
-  endDate?: string; // ISO datetime string (백엔드에서 제공하는 전체 datetime)
+  startDate?: string; // ISO datetime string
+  endDate?: string; // ISO datetime string
   status: 'planned' | 'in_progress' | 'completed';
   priority: 'low' | 'medium' | 'high';
   projectId?: string;
@@ -35,8 +33,8 @@ export interface ScheduleFormData {
   title: string;
   description?: string;
   date: string; // ISO date string
-  start_date?: string; // ISO string format (백엔드 API 호환 - 날짜+시간 포함)
-  end_date?: string; // ISO string format (백엔드 API 호환 - 날짜+시간 포함)
+  startDate?: string; // ISO datetime string
+  endDate?: string; // ISO datetime string
   status: 'planned' | 'in_progress' | 'completed';
   priority: 'low' | 'medium' | 'high';
   projectId?: string;

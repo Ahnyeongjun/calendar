@@ -24,9 +24,9 @@ const ScheduleModal = ({ isOpen, onClose, onSave, onDelete, schedule, selectedDa
   const [formData, setFormData] = useState<ScheduleFormData>({
     title: '',
     description: '',
-    date: '', // 내부적으로만 사용, start_date에서 추출
-    start_date: toDateTimeString(new Date(), '09:00'),
-    end_date: toDateTimeString(new Date(), '10:00'),
+    date: '', // 내부적으로만 사용, startDate에서 추출
+    startDate: toDateTimeString(new Date(), '09:00'),
+    endDate: toDateTimeString(new Date(), '10:00'),
     projectId: undefined,
     priority: 'medium',
     status: 'planned'
@@ -43,9 +43,9 @@ const ScheduleModal = ({ isOpen, onClose, onSave, onDelete, schedule, selectedDa
       setFormData({
         title: schedule.title,
         description: schedule.description || '',
-        date: '', // start_date에서 추출되므로 비우기
-        start_date: startDateTime,
-        end_date: endDateTime,
+        date: '', // startDate에서 추출되므로 비우기
+        startDate: startDateTime,
+        endDate: endDateTime,
         projectId: schedule.projectId,
         priority: schedule.priority,
         status: schedule.status
@@ -53,8 +53,8 @@ const ScheduleModal = ({ isOpen, onClose, onSave, onDelete, schedule, selectedDa
     } else if (selectedDate) {
       setFormData(prev => ({ 
         ...prev, 
-        start_date: toDateTimeString(selectedDate, '09:00'),
-        end_date: toDateTimeString(selectedDate, '10:00')
+        startDate: toDateTimeString(selectedDate, '09:00'),
+        endDate: toDateTimeString(selectedDate, '10:00')
       }));
     } else {
       // 기본값으로 리셋
@@ -63,8 +63,8 @@ const ScheduleModal = ({ isOpen, onClose, onSave, onDelete, schedule, selectedDa
         title: '',
         description: '',
         date: '',
-        start_date: toDateTimeString(today, '09:00'),
-        end_date: toDateTimeString(today, '10:00'),
+        startDate: toDateTimeString(today, '09:00'),
+        endDate: toDateTimeString(today, '10:00'),
         projectId: undefined,
         priority: 'medium',
         status: 'planned'
@@ -81,29 +81,29 @@ const ScheduleModal = ({ isOpen, onClose, onSave, onDelete, schedule, selectedDa
       return;
     }
     
-    if (!formData.start_date || !formData.end_date) {
+    if (!formData.startDate || !formData.endDate) {
       alert('시작일자와 종료일자를 설정해주세요.');
       return;
     }
     
     // 날짜 순서 검증
-    const startDate = new Date(formData.start_date);
-    const endDate = new Date(formData.end_date);
+    const startDate = new Date(formData.startDate);
+    const endDate = new Date(formData.endDate);
     
     if (startDate > endDate) {
       alert('시작일자가 종료일자보다 늦을 수 없습니다.');
       return;
     }
     
-    // start_date에서 날짜 추출하여 date 필드 설정
+    // startDate에서 날짜 추출하여 date 필드 설정
     const dateStr = startDate.toISOString().split('T')[0];
     
     // 백엔드로 보낼 때 ISO string 형식으로 변환 (날짜 + 시간 포함)
     const apiData = {
       ...formData,
-      date: dateStr, // start_date에서 추출한 날짜
-      start_date: formatDateTimeForAPI(formData.start_date),
-      end_date: formatDateTimeForAPI(formData.end_date)
+      date: dateStr, // startDate에서 추출한 날짜
+      startDate: formatDateTimeForAPI(formData.startDate),
+      endDate: formatDateTimeForAPI(formData.endDate)
     };
     
     onSave(apiData, schedule?.id);
@@ -122,8 +122,8 @@ const ScheduleModal = ({ isOpen, onClose, onSave, onDelete, schedule, selectedDa
       title: '',
       description: '',
       date: '',
-      start_date: toDateTimeString(today, '09:00'),
-      end_date: toDateTimeString(today, '10:00'),
+      startDate: toDateTimeString(today, '09:00'),
+      endDate: toDateTimeString(today, '10:00'),
       projectId: undefined,
       priority: 'medium',
       status: 'planned'
@@ -173,10 +173,10 @@ const ScheduleModal = ({ isOpen, onClose, onSave, onDelete, schedule, selectedDa
             <div className="space-y-2">
               <Label>시작일자 ~ 종료일자</Label>
               <TimeRangePicker
-                start_date={formData.start_date}
-                end_date={formData.end_date}
-                onStart_dateChange={(start_date) => updateFormData({ start_date })}
-                onEnd_dateChange={(end_date) => updateFormData({ end_date })}
+                startDate={formData.startDate}
+                endDate={formData.endDate}
+                onStartDateChange={(startDate) => updateFormData({ startDate })}
+                onEndDateChange={(endDate) => updateFormData({ endDate })}
               />
             </div>
           </div>

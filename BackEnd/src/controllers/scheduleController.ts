@@ -86,7 +86,7 @@ class ScheduleController {
 
     const filters = ScheduleController.buildFilters(req.query, req.user!.id);
     const schedules = await ScheduleModel.findAll(filters);
-    const processedSchedules = schedules.map(convertScheduleDate);
+    const processedSchedules = schedules.map(schedule => convertScheduleDate(schedule));
 
     res.json({
       success: true,
@@ -121,16 +121,16 @@ class ScheduleController {
 
     const newSchedule = await ScheduleModel.create(scheduleData);
 
-    // endDate 원본 정보 저장 (ISO datetime 형식 보조)
-    if (req.body.end_date && newSchedule.id) {
-      storeEndDateInfo(newSchedule.id, req.body.end_date);
+    // endDate 원본 정보 저장
+    if (req.body.endDate && newSchedule.id) {
+      storeEndDateInfo(newSchedule.id, req.body.endDate);
     }
 
     // Kafka 이벤트 발행
     await ScheduleController.publishKafkaEvent(newSchedule, 'CREATE');
 
     // 응답 데이터에 date 변환 적용
-    const responseSchedule = convertScheduleDate(newSchedule);
+    const responseSchedule = convertScheduleDate(newSchedule, req.body.endDate);
 
     res.status(201).json({
       success: true,
@@ -166,15 +166,15 @@ class ScheduleController {
     }
 
     // endDate 원본 정보 업데이트
-    if (req.body.end_date) {
-      storeEndDateInfo(id, req.body.end_date);
+    if (req.body.endDate) {
+      storeEndDateInfo(id, req.body.endDate);
     }
 
     // Kafka 이벤트 발행
     await ScheduleController.publishKafkaEvent(updatedSchedule, 'UPDATE');
 
     // 응답 데이터에 date 변환 적용
-    const responseSchedule = convertScheduleDate(updatedSchedule);
+    const responseSchedule = convertScheduleDate(updatedSchedule, req.body.endDate);
 
     res.json({
       success: true,
