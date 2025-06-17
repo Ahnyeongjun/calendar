@@ -64,10 +64,7 @@ export const ScheduleTableRow = ({
     if (!timeString) return '';
     
     try {
-      // ISO datetime string에서 시간만 추출
       const date = new Date(timeString);
-      
-      // 유효한 날짜인지 확인
       if (isNaN(date.getTime())) {
         return '시간 오류';
       }
@@ -76,6 +73,53 @@ export const ScheduleTableRow = ({
     } catch {
       return '시간 오류';
     }
+  };
+
+  const formatDateTime = (timeString?: string) => {
+    if (!timeString) return '';
+    
+    try {
+      const date = new Date(timeString);
+      if (isNaN(date.getTime())) return '시간 오류';
+      
+      return format(date, 'M/d HH:mm');
+    } catch {
+      return '시간 오류';
+    }
+  };
+
+  const isSameDate = (date1: string, date2: string): boolean => {
+    try {
+      const d1 = new Date(date1);
+      const d2 = new Date(date2);
+      return d1.toDateString() === d2.toDateString();
+    } catch {
+      return false;
+    }
+  };
+
+  const getTimeDisplay = () => {
+    if (!schedule.startDate) {
+      return '시간 미설정';
+    }
+
+    const scheduleDate = schedule.date;
+    const today = new Date().toISOString().split('T')[0];
+    const isToday = scheduleDate === today;
+    
+    // 당일 일정인 경우 시간만 표시
+    if (isToday && schedule.startDate && schedule.endDate && isSameDate(schedule.startDate, schedule.endDate)) {
+      return `${formatTime(schedule.startDate)} - ${formatTime(schedule.endDate)}`;
+    }
+    
+    // 다른 날짜이거나 여러 날에 걸쳐있는 경우 날짜+시간 표시
+    if (schedule.startDate && schedule.endDate) {
+      return `${formatDateTime(schedule.startDate)} - ${formatDateTime(schedule.endDate)}`;
+    } else if (schedule.startDate) {
+      return isToday ? formatTime(schedule.startDate) : formatDateTime(schedule.startDate);
+    }
+    
+    return '시간 미설정';
   };
 
   return (
@@ -119,12 +163,7 @@ export const ScheduleTableRow = ({
       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
         <div className="flex items-center space-x-1">
           <Clock size={14} className="text-gray-400" />
-          <span>
-            {schedule.startDate && schedule.endDate 
-              ? `${formatTime(schedule.startDate)} - ${formatTime(schedule.endDate)}`
-              : '시간 미설정'
-            }
-          </span>
+          <span>{getTimeDisplay()}</span>
         </div>
       </td>
       {!hideProject && (
