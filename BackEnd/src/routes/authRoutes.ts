@@ -54,12 +54,12 @@ router.get('/profile', authMiddleware, refreshTokenIfNeeded, AuthController.getP
 router.put('/profile', authMiddleware, AuthController.updateProfile);
 
 /**
- * @route   POST /api/auth/change-password
+ * @route   PUT /api/auth/change-password
  * @desc    비밀번호 변경
  * @access  Private
  * @body    { currentPassword: string, newPassword: string }
  */
-router.post('/change-password', authMiddleware, AuthController.changePassword);
+router.put('/change-password', authMiddleware, AuthController.changePassword);
 
 /**
  * @route   POST /api/auth/refresh

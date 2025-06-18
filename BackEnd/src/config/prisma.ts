@@ -68,9 +68,9 @@ async function seedUsers(): Promise<void> {
 
 async function seedProjects(): Promise<void> {
   const projects = [
-    { id: 'personal', name: '개인', description: '개인적인 일정', color: '#10b981' },
-    { id: 'work', name: '업무', description: '회사 업무 관련', color: '#3b82f6' },
-    { id: 'study', name: '학습', description: '공부 및 자기계발', color: '#8b5cf6' }
+    { id: 'personal', name: '개인', description: '개인적인 일정', color: '#10b981', userId: '1' },
+    { id: 'work', name: '업무', description: '회사 업무 관련', color: '#3b82f6', userId: '1' },
+    { id: 'study', name: '학습', description: '공부 및 자기계발', color: '#8b5cf6', userId: '1' }
   ];
 
   for (const project of projects) {

@@ -7,6 +7,7 @@ interface ProjectCreateData {
   name: string;
   description: string | null;
   color: string;
+  userId: string;
 }
 
 interface ProjectUpdateData {
@@ -49,10 +50,10 @@ class ProjectController {
   });
 
   static createProject = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const { name, description, color } = req.body;
+    const { name, description, color, userId } = req.body;
 
     // 입력 데이터 검증
-    ValidationService.validateCreateProjectData({ name, description, color });
+    ValidationService.validateCreateProjectData({ name, description, color, userId });
 
     // 중복 이름 검증
     const existingProject = await ProjectModel.findByNameCaseInsensitive(name.trim());
@@ -63,7 +64,8 @@ class ProjectController {
     const projectData: ProjectCreateData = {
       name: name.trim(),
       description: ProjectController.sanitizeStringToNull(description),
-      color
+      color,
+      userId
     };
 
     const newProject = await ProjectModel.create(projectData);

@@ -1,0 +1,30 @@
+# docker-compose.yml - 통합 개발 환경
+version: '3.8'
+
+services:
+  # MySQL - 개발과 테스트 모두 사용
+  mysql:
+    image: mysql:8.0
+    container_name: calendar-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      # 시작 시 두 데이터베이스 자동 생성
+      MYSQL_DATABASE: calendar_dev
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./scripts/init-databases.sql:/docker-entrypoint-initdb.d/init-databases.sql:ro
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+volumes:
+  mysql_data:
+
+# 사용법:
+# docker-compose up -d mysql           # MySQL 시작
+# npm run prisma:migrate              # 개발 DB 마이그레이션
+# npm run prisma:migrate:test         # 테스트 DB 마이그레이션

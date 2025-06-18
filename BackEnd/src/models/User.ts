@@ -385,12 +385,27 @@ export class UserModel {
       const timer = logger.startTimer('UserModel.findMany', requestId);
 
       const skip = (page - 1) * limit;
-      const where = search ? {
-        OR: [
-          { username: { contains: search, mode: 'insensitive' as const } },
-          { name: { contains: search, mode: 'insensitive' as const } }
-        ]
-      } : {};
+      
+      // MySQL에서 case-insensitive 검색을 위한 따로 처리
+      let where: any = {};
+      if (search) {
+        // 대소문자 구분 없이 검색하려면 둘 다 소문자로 변환
+        const searchLower = search.toLowerCase();
+        where = {
+          OR: [
+            { 
+              username: {
+                contains: search
+              }
+            },
+            { 
+              name: {
+                contains: search
+              }
+            }
+          ]
+        };
+      }
 
       const [users, total] = await Promise.all([
         prisma.user.findMany({
