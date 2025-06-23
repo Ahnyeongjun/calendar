@@ -628,11 +628,10 @@ describe('Auth Integration Tests', () => {
       const schedule = await prisma.schedule.create({
         data: {
           title: 'Test Schedule',
-          startTime: new Date(), // Replace with a valid property from ScheduleCreateInput
-          endTime: new Date(), // 1시간 후
-          date: new Date(), // Add a valid date property
-          status: Status.completed, // Add a valid status property
-          priority: Priority.high, // Add a valid priority property
+          startDate: new Date(), // Replace with a valid property from ScheduleCreateInput
+          endDate: new Date(), // 1시간 후
+          status: Status.COMPLETED, // Add a valid status property
+          priority: Priority.HIGH, // Add a valid priority property
           user: {
             connect: { id: user.id }
           },

@@ -39,11 +39,10 @@ model Schedule {
   id          String    @id @default(uuid())
   title       String
   description String?   @db.Text
-  date        DateTime  @db.Date
-  startTime   DateTime? @map("start_time") @db.Time
-  endTime     DateTime? @map("end_time") @db.Time
-  status      Status
-  priority    Priority
+  startDate   DateTime  @map("start_date")
+  endDate     DateTime  @map("end_date")
+  status      Status    @default(PENDING)
+  priority    Priority  @default(MEDIUM)
   project     Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
   projectId   String?   @map("project_id")
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -55,13 +54,14 @@ model Schedule {
 }
 
 enum Status {
-  planned
-  in_progress @map("in-progress")
-  completed
+  PENDING     @map("pending")
+  IN_PROGRESS @map("in_progress")
+  COMPLETED   @map("completed")
+  CANCELLED   @map("cancelled")
 }
 
 enum Priority {
-  low
-  medium
-  high
+  LOW    @map("low")
+  MEDIUM @map("medium")
+  HIGH   @map("high")
 }

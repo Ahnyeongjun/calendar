@@ -2,9 +2,10 @@ import request from 'supertest';
 import express from 'express';
 import { TestDatabase } from './database';
 import { v4 as uuidv4 } from 'uuid';
+import { Status, Priority } from '@prisma/client';
 
 export class TestServer {
-  private app!: express.Application; // ! 를 추가하여 definite assignment assertion
+  private app!: express.Application;
   private server: any;
 
   constructor() {
@@ -86,38 +87,34 @@ export const generateTestToken = (userId: string = 'test-user-id', username: str
       username: username,
       name: name
     },
-    'test-secret',
+    process.env.JWT_SECRET || 'test-secret-key',
     { expiresIn: '1h' }
   );
 };
 
 // 테스트용 사용자 생성
 export const createTestUser = async (overrides: any = {}) => {
-  // setup이 호출되었는지 확인
   let prisma;
   try {
     prisma = TestDatabase.getPrisma();
   } catch (error) {
-    // setup이 안 되어 있다면 setup 호출
     await TestDatabase.setup();
     prisma = TestDatabase.getPrisma();
   }
   
   const bcrypt = require('bcryptjs');
   
-  // 기본값 설정
   const defaultPassword = 'TestPassword123!';
   const passwordToUse = overrides.password || defaultPassword;
   
-  // overrides에서 password 제거 (나중에 해시된 버전으로 추가)
   const { password, ...otherOverrides } = overrides;
   
   const userData = {
     id: uuidv4(),
-    username: `test${Math.random().toString(36).substr(2, 8)}`, // 언더스코어 제거, 영문자와 숫자만
+    username: `test${Math.random().toString(36).substr(2, 8)}`,
     name: 'Test User',
-    ...otherOverrides, // password 제외한 나머지 overrides 적용
-    password: await bcrypt.hash(passwordToUse, 12) // 마지막에 해시된 비밀번호 추가
+    ...otherOverrides,
+    password: await bcrypt.hash(passwordToUse, 12)
   };
 
   return await prisma.user.create({
@@ -127,7 +124,6 @@ export const createTestUser = async (overrides: any = {}) => {
 
 // 테스트용 프로젝트 생성
 export const createTestProject = async (userId: string, overrides: any = {}) => {
-  // setup이 호출되었는지 확인
   let prisma;
   try {
     prisma = TestDatabase.getPrisma();
@@ -150,9 +146,8 @@ export const createTestProject = async (userId: string, overrides: any = {}) => 
   });
 };
 
-// 테스트용 스케줄 생성
+// 테스트용 스케줄 생성 - 수정된 필드명 사용
 export const createTestSchedule = async (projectId: string, userId: string, overrides: any = {}) => {
-  // setup이 호출되었는지 확인
   let prisma;
   try {
     prisma = TestDatabase.getPrisma();
@@ -161,15 +156,15 @@ export const createTestSchedule = async (projectId: string, userId: string, over
     prisma = TestDatabase.getPrisma();
   }
   
+  const now = new Date();
   const scheduleData = {
     id: uuidv4(),
     title: 'Test Schedule',
     description: 'Test schedule description',
-    date: new Date(), // startDate -> date로 변경
-    startTime: new Date(), // 시간 필드 추가
-    endTime: new Date(Date.now() + 60 * 60 * 1000), // 1시간 후
-    status: 'planned',
-    priority: 'medium',
+    startDate: now, // 수정: date -> startDate
+    endDate: new Date(now.getTime() + 60 * 60 * 1000), // 수정: 1시간 후
+    status: Status.PENDING, // 수정: enum 값 사용
+    priority: Priority.MEDIUM, // 수정: enum 값 사용
     projectId,
     userId,
     ...overrides
@@ -211,3 +206,6 @@ export const ensureDatabaseConnection = async (): Promise<void> => {
     throw new Error('Test database connection failed');
   }
 };
+
+// Status, Priority export
+export { Status, Priority };

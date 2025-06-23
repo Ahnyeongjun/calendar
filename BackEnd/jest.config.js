@@ -1,5 +1,5 @@
 module.exports = {
-  slient: false, // 콘솔 출력 억제 
+  silent: false, // 오타 수정: slient → silent
   // 테스트 환경 설정
   preset: 'ts-jest',
   testEnvironment: 'node',

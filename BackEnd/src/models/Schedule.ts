@@ -2,7 +2,6 @@ import { prisma } from '../config/prisma';
 import { Schedule, Status, Priority } from '@prisma/client';
 
 interface ScheduleFilters {
-  date?: Date;
   startDate?: Date;
   endDate?: Date;
   status?: Status;
@@ -20,15 +19,18 @@ class ScheduleModel {
     try {
       const where: any = {};
 
-      // 날짜 필터링
-      if (filters.date) {
-        where.date = filters.date;
-      }
-
       // 날짜 범위 필터링
       if (filters.startDate && filters.endDate) {
-        where.date = {
+        where.startDate = {
           gte: filters.startDate,
+          lte: filters.endDate
+        };
+      } else if (filters.startDate) {
+        where.startDate = {
+          gte: filters.startDate
+        };
+      } else if (filters.endDate) {
+        where.endDate = {
           lte: filters.endDate
         };
       }
@@ -56,8 +58,8 @@ class ScheduleModel {
       return await prisma.schedule.findMany({
         where,
         orderBy: [
-          { date: 'asc' },
-          { startTime: 'asc' }
+          { startDate: 'asc' },
+          { createdAt: 'asc' }
         ],
         include: {
           project: true,
