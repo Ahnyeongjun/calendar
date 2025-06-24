@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import * as Sentry from '@sentry/react';
 import { Toaster } from '@/components/ui/toaster';
 import { Toaster as Sonner } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -13,6 +14,7 @@ import MyPage from './pages/MyPage';
 import LoginPage from './pages/LoginPage';
 import MainPage from './pages/MainPage';
 import NotFound from './pages/NotFound';
+import SentryTestComponent from './components/SentryTestComponent';
 
 // React Query 설정
 const queryClient = new QueryClient({
@@ -144,32 +146,59 @@ const App: React.FC = () => {
   }, []);
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider defaultTheme="system" storageKey="calendar-theme">
-        <TooltipProvider>
-          <BrowserRouter>
-            <AppRoutes />
-          </BrowserRouter>
-
-          {/* Toast 알림 시스템 */}
-          <Toaster />
-          <Sonner
-            position="top-right"
-            closeButton
-            richColors
-            theme="system"
-          />
-
-          {/* React Query 개발 도구 (개발 환경에서만) */}
+    <Sentry.ErrorBoundary 
+      fallback={({ error }) => (
+        <div className="flex flex-col items-center justify-center min-h-screen p-4">
+          <h2 className="text-2xl font-bold text-red-600 mb-4">에러가 발생했습니다</h2>
+          <p className="text-gray-600 mb-4">예상치 못한 문제가 발생했습니다. 잠시 후 다시 시도해주세요.</p>
+          <button 
+            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+            onClick={() => window.location.reload()}
+          >
+            페이지 새로고침
+          </button>
           {process.env.NODE_ENV === 'development' && (
-            <ReactQueryDevtools
-              initialIsOpen={false}
-              position="bottom"
-            />
+            <details className="mt-4 max-w-lg">
+              <summary className="cursor-pointer text-sm text-gray-500">에러 세부정보</summary>
+              <pre className="text-xs bg-gray-100 p-2 rounded mt-2 overflow-auto">
+                {error.toString()}
+              </pre>
+            </details>
           )}
-        </TooltipProvider>
-      </ThemeProvider>
-    </QueryClientProvider>
+        </div>
+      )} 
+      showDialog
+    >
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider defaultTheme="system" storageKey="calendar-theme">
+          <TooltipProvider>
+            <BrowserRouter>
+              <AppRoutes />
+            </BrowserRouter>
+
+            {/* Sentry 테스트 컴포넌트 (개발 환경에서만) */}
+            <SentryTestComponent />
+
+            {/* Toast 알림 시스템 */}
+            <Toaster />
+            <Sonner
+              position="top-right"
+              closeButton
+              richColors
+              theme="system"
+            />
+
+            {/* React Query 개발 도구 (개발 환경에서만) */}
+            {process.env.NODE_ENV === 'development' && (
+              <ReactQueryDevtools
+                initialIsOpen={false}
+                position="bottom"
+              />
+            )}
+          </TooltipProvider>
+        </ThemeProvider>
+      </QueryClientProvider>
+    </Sentry.ErrorBoundary>
   );
 };
 
