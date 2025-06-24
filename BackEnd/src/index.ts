@@ -3,15 +3,17 @@ import cors from 'cors';
 import { config } from './config/config';
 import { logger } from './services/logger';
 import { testConnection, seedDatabase } from './config/prisma';
-import { 
-  errorHandler, 
-  notFoundHandler, 
-  requestIdMiddleware, 
-  httpLoggingMiddleware 
+import { initializeSentry, Sentry } from './config/sentry';
+import {
+  errorHandler,
+  notFoundHandler,
+  requestIdMiddleware,
+  httpLoggingMiddleware
 } from './middleware/errorHandler';
 import authRoutes from './routes/authRoutes';
 import projectRoutes from './routes/projectRoutes';
 import scheduleRoutes from './routes/scheduleRoutes';
+import testRoutes from './routes/testRoutes';
 
 class CalendarApp {
   private app: express.Application;
@@ -20,10 +22,23 @@ class CalendarApp {
 
   constructor() {
     this.app = express();
+    this.initializeSentry();
     this.validateConfiguration();
     this.setupMiddleware();
     this.setupRoutes();
     this.setupErrorHandling();
+  }
+
+  /**
+   * Sentry 초기화
+   */
+  private initializeSentry(): void {
+    try {
+      initializeSentry();
+      logger.info('Sentry initialized successfully', 'SENTRY');
+    } catch (error) {
+      logger.warn('Sentry initialization failed', 'SENTRY', error);
+    }
   }
 
   /**
@@ -33,7 +48,7 @@ class CalendarApp {
     try {
       config.validate();
       logger.info('Configuration validated successfully', 'CONFIG');
-      
+
       if (config.server.isDevelopment) {
         logger.debug('Configuration summary', 'CONFIG', config.getSummary());
       }
@@ -47,6 +62,10 @@ class CalendarApp {
    * 미들웨어 설정
    */
   private setupMiddleware(): void {
+    // Sentry request handler (미들웨어 최상단에 추가)
+    this.app.use(Sentry.Handlers.requestHandler());
+    this.app.use(Sentry.Handlers.tracingHandler());
+
     // Request ID 생성 (모든 요청에 고유 ID 부여)
     this.app.use(requestIdMiddleware);
 
@@ -59,14 +78,14 @@ class CalendarApp {
     }));
 
     // Body parser 설정
-    this.app.use(express.json({ 
+    this.app.use(express.json({
       limit: '10mb',
       strict: true
     }));
-    
-    this.app.use(express.urlencoded({ 
-      extended: true, 
-      limit: '10mb' 
+
+    this.app.use(express.urlencoded({
+      extended: true,
+      limit: '10mb'
     }));
 
     // HTTP 요청 로깅 (개발 환경에서만)
@@ -79,11 +98,11 @@ class CalendarApp {
       res.setHeader('X-Content-Type-Options', 'nosniff');
       res.setHeader('X-Frame-Options', 'DENY');
       res.setHeader('X-XSS-Protection', '1; mode=block');
-      
+
       if (config.server.isProduction) {
         res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
       }
-      
+
       next();
     });
 
@@ -115,6 +134,12 @@ class CalendarApp {
     this.app.use('/api/projects', projectRoutes);
     this.app.use('/api/schedules', scheduleRoutes);
 
+    // 테스트 라우트 (개발 환경에서만)
+    if (config.server.isDevelopment || config.server.nodeEnv === 'test') {
+      this.app.use('/test/sentry', testRoutes);
+      logger.info('Test routes enabled', 'ROUTES');
+    }
+
     // 루트 헬스 체크
     this.app.get('/', (req, res) => {
       res.json({
@@ -145,7 +170,7 @@ class CalendarApp {
       try {
         const dbConnected = await testConnection();
         healthData.database = dbConnected ? 'connected' : 'disconnected';
-        
+
         if (!dbConnected) {
           healthData.status = 'degraded';
         }
@@ -197,6 +222,9 @@ class CalendarApp {
     // 404 에러 핸들러 (라우트 다음에 위치)
     this.app.use(notFoundHandler);
 
+    // Sentry error handler (전역 에러 핸들러 전에 추가)
+    this.app.use(Sentry.Handlers.errorHandler());
+
     // 전역 에러 핸들러 (마지막에 위치)
     this.app.use(errorHandler);
 
@@ -209,16 +237,16 @@ class CalendarApp {
   private async initializeDatabase(): Promise<void> {
     try {
       logger.info('Initializing database connection...', 'DATABASE');
-      
+
       // 데이터베이스 연결 테스트
       const isConnected = await testConnection();
       if (!isConnected) {
         throw new Error('Database connection failed');
       }
-      
+
       // 초기 데이터 설정
       await seedDatabase();
-      
+
       logger.info('Database initialization completed', 'DATABASE');
     } catch (error) {
       logger.error('Database initialization failed', 'DATABASE', error);
@@ -260,12 +288,12 @@ class CalendarApp {
    */
   private gracefulShutdown(exitCode: number): void {
     logger.info('Starting graceful shutdown...', 'SHUTDOWN');
-    
+
     // 여기서 필요한 정리 작업 수행
     // - 데이터베이스 연결 종료
     // - Kafka 연결 종료
     // - 진행 중인 요청 완료 대기 등
-    
+
     setTimeout(() => {
       logger.info('Graceful shutdown completed', 'SHUTDOWN');
       process.exit(exitCode);
@@ -278,13 +306,13 @@ class CalendarApp {
   public async start(): Promise<void> {
     try {
       logger.info(`Starting ${this.APP_NAME}...`, 'SERVER');
-      
+
       // 데이터베이스 초기화
       await this.initializeDatabase();
-      
+
       // 프로세스 이벤트 핸들러 설정
       this.setupProcessHandlers();
-      
+
       // 서버 시작
       const server = this.app.listen(config.server.port, () => {
         logger.info(`Server running on http://localhost:${config.server.port}`, 'SERVER');
