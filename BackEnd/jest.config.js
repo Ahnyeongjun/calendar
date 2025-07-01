@@ -3,6 +3,7 @@ module.exports = {
   // 테스트 환경 설정
   preset: 'ts-jest',
   testEnvironment: 'node',
+  injectGlobals: true, // Jest 전역 함수들(describe, test, beforeAll 등) 자동 주입
 
   // 테스트 파일 패턴
   testMatch: [
