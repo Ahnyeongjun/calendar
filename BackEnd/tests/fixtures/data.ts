@@ -133,8 +133,8 @@ export const validScheduleData = {
   description: 'This is a test schedule',
   startDate: new Date('2024-01-01T09:00:00Z'),
   endDate: new Date('2024-01-01T17:00:00Z'),
-  status: Status.planned,
-  priority: Priority.medium,
+  status: Status.PENDING,
+  priority: Priority.MEDIUM,
   projectId: 'project-id',
   userId: 'user-id'
 };
@@ -145,8 +145,8 @@ export const invalidScheduleData = {
     description: 'Description',
     startDate: new Date('2024-01-01T09:00:00Z'),
     endDate: new Date('2024-01-01T17:00:00Z'),
-    status: Status.planned,
-    priority: Priority.medium,
+    status: Status.PENDING,
+    priority: Priority.MEDIUM,
     projectId: 'project-id',
     userId: 'user-id'
   },
@@ -155,8 +155,8 @@ export const invalidScheduleData = {
     description: 'Description',
     startDate: new Date('2024-01-01T09:00:00Z'),
     endDate: new Date('2024-01-01T17:00:00Z'),
-    status: Status.planned,
-    priority: Priority.medium,
+    status: Status.PENDING,
+    priority: Priority.MEDIUM,
     projectId: 'project-id',
     userId: 'user-id'
   },
@@ -165,8 +165,8 @@ export const invalidScheduleData = {
     description: 'a'.repeat(1001),
     startDate: new Date('2024-01-01T09:00:00Z'),
     endDate: new Date('2024-01-01T17:00:00Z'),
-    status: Status.planned,
-    priority: Priority.medium,
+    status: Status.PENDING,
+    priority: Priority.MEDIUM,
     projectId: 'project-id',
     userId: 'user-id'
   },
@@ -175,8 +175,8 @@ export const invalidScheduleData = {
     description: 'Description',
     startDate: new Date('2024-01-01T17:00:00Z'),
     endDate: new Date('2024-01-01T09:00:00Z'), // 시작일이 종료일보다 늦음
-    status: Status.planned,
-    priority: Priority.medium,
+    status: Status.PENDING,
+    priority: Priority.MEDIUM,
     projectId: 'project-id',
     userId: 'user-id'
   },
@@ -185,8 +185,8 @@ export const invalidScheduleData = {
     description: 'Description',
     startDate: new Date('2024-01-01T09:00:00Z'),
     endDate: new Date('2024-01-01T09:00:00Z'), // 시작일과 종료일이 같음
-    status: Status.planned,
-    priority: Priority.medium,
+    status: Status.PENDING,
+    priority: Priority.MEDIUM,
     projectId: 'project-id',
     userId: 'user-id'
   },
@@ -196,7 +196,7 @@ export const invalidScheduleData = {
     startDate: new Date('2024-01-01T09:00:00Z'),
     endDate: new Date('2024-01-01T17:00:00Z'),
     status: 'INVALID_STATUS' as any,
-    priority: Priority.medium,
+    priority: Priority.MEDIUM,
     projectId: 'project-id',
     userId: 'user-id'
   },
@@ -205,7 +205,7 @@ export const invalidScheduleData = {
     description: 'Description',
     startDate: new Date('2024-01-01T09:00:00Z'),
     endDate: new Date('2024-01-01T17:00:00Z'),
-    status: Status.planned,
+    status: Status.PENDING,
     priority: 'INVALID_PRIORITY' as any,
     projectId: 'project-id',
     userId: 'user-id'
@@ -215,8 +215,8 @@ export const invalidScheduleData = {
     description: 'Description',
     startDate: new Date('2024-01-01T09:00:00Z'),
     endDate: new Date('2024-01-01T17:00:00Z'),
-    status: Status.planned,
-    priority: Priority.medium,
+    status: Status.PENDING,
+    priority: Priority.MEDIUM,
     userId: 'user-id'
   },
   missingUserId: {
@@ -224,8 +224,8 @@ export const invalidScheduleData = {
     description: 'Description',
     startDate: new Date('2024-01-01T09:00:00Z'),
     endDate: new Date('2024-01-01T17:00:00Z'),
-    status: Status.planned,
-    priority: Priority.medium,
+    status: Status.PENDING,
+    priority: Priority.MEDIUM,
     projectId: 'project-id'
   }
 };

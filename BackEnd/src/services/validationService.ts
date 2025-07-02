@@ -32,8 +32,8 @@ export interface UpdateProjectData {
 export interface CreateScheduleData {
   title: string;
   description?: string;
-  startDate: string;
-  endDate: string;
+  startDate: Date;
+  endDate: Date;
   projectId: string;
   userId: string;
 }
@@ -41,8 +41,8 @@ export interface CreateScheduleData {
 export interface UpdateScheduleData {
   title?: string;
   description?: string;
-  startDate?: string;
-  endDate?: string;
+  startDate?: Date;
+  endDate?: Date;
   projectId?: string;
 }
 
@@ -52,8 +52,8 @@ export interface QueryParams {
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
   search?: string;
-  startDate?: string;
-  endDate?: string;
+  startDate?: Date;
+  endDate?: Date;
   projectId?: string;
 }
 

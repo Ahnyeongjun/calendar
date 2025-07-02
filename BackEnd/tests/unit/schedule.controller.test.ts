@@ -56,10 +56,10 @@ describe('ScheduleController', () => {
     title: 'Test Schedule',
     description: 'Test Description',
     date: new Date('2024-01-01'),
-    startTime: new Date('2024-01-01T09:00:00Z'),
-    endTime: new Date('2024-01-01T17:00:00Z'),
-    status: Status.planned,
-    priority: Priority.medium,
+    startDate: new Date('2024-01-01T09:00:00Z'),
+    endDate: new Date('2024-01-01T17:00:00Z'),
+    status: Status.IN_PROGRESS,
+    priority: Priority.MEDIUM,
     projectId: 'project-id',
     userId: 'user-id',
     createdAt: new Date(),
@@ -104,8 +104,8 @@ describe('ScheduleController', () => {
     it('필터 조건과 함께 일정을 조회해야 한다', async () => {
       req.query = {
         date: '2024-01-01',
-        status: Status.planned,
-        priority: Priority.high,
+        status: Status.IN_PROGRESS,
+        priority: Priority.HIGH,
         projectId: 'project-id'
       };
 
@@ -117,8 +117,8 @@ describe('ScheduleController', () => {
       expect(MockScheduleModel.findAll).toHaveBeenCalledWith({
         userId: 'user-id',
         date: new Date('2024-01-01'),
-        status: Status.planned,
-        priority: Priority.high,
+        status: Status.IN_PROGRESS,
+        priority: Priority.HIGH,
         projectId: 'project-id'
       });
     });
@@ -207,8 +207,8 @@ describe('ScheduleController', () => {
     const scheduleCreateData = {
       title: 'Test Schedule',
       description: 'Test Description',
-      startDate: '2024-01-01T09:00:00Z',
-      endDate: '2024-01-01T17:00:00Z',
+      startDate: new Date('2024-01-01T10:00:00Z'),
+      endDate: new Date('2024-01-01T17:00:00Z'),
       projectId: 'project-id',
       userId: 'user-id'
     };
@@ -221,11 +221,10 @@ describe('ScheduleController', () => {
       MockScheduleTransformer.apiToCreateData.mockReturnValue({
         title: 'Test Schedule',
         description: 'Test Description',
-        date: new Date('2024-01-01'),
-        startTime: new Date('2024-01-01T09:00:00Z'),
-        endTime: new Date('2024-01-01T17:00:00Z'),
-        status: Status.planned,
-        priority: Priority.medium,
+        startDate: new Date('2024-01-01T09:00:00Z'),
+        endDate: new Date('2024-01-01T17:00:00Z'),
+        status: Status.IN_PROGRESS,
+        priority: Priority.MEDIUM,
         projectId: 'project-id',
         userId: 'user-id'
       });
@@ -243,10 +242,10 @@ describe('ScheduleController', () => {
         title: 'Test Schedule',
         description: 'Test Description',
         date: new Date('2024-01-01'),
-        startTime: new Date('2024-01-01T09:00:00Z'),
-        endTime: new Date('2024-01-01T17:00:00Z'),
-        status: Status.planned,
-        priority: Priority.medium,
+        startDate: new Date('2024-01-01T09:00:00Z'),
+        endDate: new Date('2024-01-01T17:00:00Z'),
+        status: Status.IN_PROGRESS,
+        priority: Priority.MEDIUM,
         projectId: 'project-id',
         userId: 'user-id'
       });
@@ -290,11 +289,10 @@ describe('ScheduleController', () => {
       MockScheduleTransformer.apiToCreateData.mockReturnValue({
         title: 'Test Schedule',
         description: 'Test Description',
-        date: new Date('2024-01-01'),
-        startTime: new Date('2024-01-01T09:00:00Z'),
-        endTime: new Date('2024-01-01T17:00:00Z'),
-        status: Status.planned,
-        priority: Priority.medium,
+        startDate: new Date('2024-01-01T09:00:00Z'),
+        endDate: new Date('2024-01-01T17:00:00Z'),
+        status: Status.IN_PROGRESS,
+        priority: Priority.MEDIUM,
         projectId: 'project-id',
         userId: 'user-id'
       });
@@ -388,16 +386,16 @@ describe('ScheduleController', () => {
 
     it('시간 업데이트 시 시간 검증을 수행해야 한다', async () => {
       const timeUpdateData = {
-        startDate: '2024-01-01T10:00:00Z',
-        endDate: '2024-01-01T18:00:00Z'
+        startDate: new Date('2024-01-01T10:00:00Z'),
+        endDate: new Date('2024-01-01T18:00:00Z')
       };
 
       MockValidationService.validateId.mockReturnValue('schedule-id');
       MockValidationService.validateUpdateScheduleData.mockReturnValue(timeUpdateData);
       MockScheduleModel.findById.mockResolvedValue(mockSchedule);
       MockScheduleTransformer.partialApiToUpdateData.mockReturnValue({
-        startTime: new Date(timeUpdateData.startDate),
-        endTime: new Date(timeUpdateData.endDate)
+        startDate: new Date(timeUpdateData.startDate),
+        endDate: new Date(timeUpdateData.endDate)
       });
       MockScheduleTransformer.validateUpdateTimes.mockReturnValue(undefined);
       MockScheduleModel.update.mockResolvedValue({ ...mockSchedule, ...timeUpdateData });
@@ -512,19 +510,18 @@ describe('ScheduleController', () => {
       MockValidationService.validateCreateScheduleData.mockReturnValue({
         title: 'Test Schedule',
         description: 'Test Description',
-        startDate: '2024-01-01T09:00:00Z',
-        endDate: '2024-01-01T17:00:00Z',
+        startDate: new Date('2024-01-01T10:00:00Z'),
+        endDate: new Date('2024-01-01T17:00:00Z'),
         projectId: 'project-id',
         userId: 'user-id'
       });
       MockScheduleTransformer.apiToCreateData.mockReturnValue({
         title: 'Test Schedule',
         description: 'Test Description',
-        date: new Date('2024-01-01'),
-        startTime: new Date('2024-01-01T09:00:00Z'),
-        endTime: new Date('2024-01-01T17:00:00Z'),
-        status: Status.planned,
-        priority: Priority.medium,
+        startDate: new Date('2024-01-01T09:00:00Z'),
+        endDate: new Date('2024-01-01T17:00:00Z'),
+        status: Status.IN_PROGRESS,
+        priority: Priority.MEDIUM,
         projectId: 'project-id',
         userId: 'user-id'
       });
@@ -572,8 +569,8 @@ describe('ScheduleController', () => {
         date: '2024-01-01',
         startDate: '2024-01-01',
         endDate: '2024-01-31',
-        status: Status.completed,
-        priority: Priority.low,
+        status: Status.COMPLETED,
+        priority: Priority.LOW,
         projectId: 'project-id'
       };
 
@@ -586,8 +583,8 @@ describe('ScheduleController', () => {
         date: new Date('2024-01-01'),
         startDate: new Date('2024-01-01'),
         endDate: new Date('2024-01-31'),
-        status: Status.completed,
-        priority: Priority.low,
+        status: Status.COMPLETED,
+        priority: Priority.LOW,
         projectId: 'project-id'
       });
     });

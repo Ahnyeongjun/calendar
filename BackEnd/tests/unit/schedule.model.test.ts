@@ -12,11 +12,10 @@ describe('ScheduleModel', () => {
   const scheduleCreateData: ScheduleCreateInput = {
     title: 'Test Schedule',
     description: 'Test Description',
-    date: new Date('2024-01-01'),
-    startTime: new Date('2024-01-01T09:00:00Z'),
-    endTime: new Date('2024-01-01T17:00:00Z'),
-    status: Status.planned,
-    priority: Priority.medium,
+    startDate: new Date('2024-01-01T09:00:00Z'),
+    endDate: new Date('2024-01-01T17:00:00Z'),
+    status: Status.PENDING,
+    priority: Priority.MEDIUM,
     projectId: 'project-id',
     userId: 'user-id'
   };
@@ -41,9 +40,8 @@ describe('ScheduleModel', () => {
       expect(schedule.id).toBeDefined();
       expect(schedule.title).toBe(scheduleCreateData.title);
       expect(schedule.description).toBe(scheduleCreateData.description);
-      expect(schedule.date).toEqual(scheduleCreateData.date);
-      expect(schedule.startTime).toEqual(scheduleCreateData.startTime);
-      expect(schedule.endTime).toEqual(scheduleCreateData.endTime);
+      expect(schedule.startDate).toEqual(scheduleCreateData.startDate);
+      expect(schedule.endDate).toEqual(scheduleCreateData.endDate);
       expect(schedule.status).toBe(scheduleCreateData.status);
       expect(schedule.priority).toBe(scheduleCreateData.priority);
       expect(schedule.projectId).toBe(scheduleCreateData.projectId);
@@ -56,11 +54,10 @@ describe('ScheduleModel', () => {
       const minimalScheduleData: ScheduleCreateInput = {
         title: 'Minimal Schedule',
         description: null,
-        date: new Date('2024-01-01'),
-        startTime: new Date('2024-01-01T09:00:00Z'),
-        endTime: new Date('2024-01-01T17:00:00Z'),
-        status: Status.planned,
-        priority: Priority.low,
+        startDate: new Date('2024-01-01T09:00:00Z'),
+        endDate: new Date('2024-01-01T17:00:00Z'),
+        status: Status.PENDING,
+        priority: Priority.LOW,
         projectId: 'project-id',
         userId: 'user-id'
       };
@@ -73,8 +70,8 @@ describe('ScheduleModel', () => {
     });
 
     it('다양한 상태와 우선순위로 일정을 생성해야 한다', async () => {
-      const statuses = [Status.planned, Status.in_progress, Status.completed];
-      const priorities = [Priority.low, Priority.medium, Priority.high];
+      const statuses = [Status.PENDING, Status.IN_PROGRESS, Status.COMPLETED];
+      const priorities = [Priority.LOW, Priority.MEDIUM, Priority.HIGH];
 
       for (const status of statuses) {
         for (const priority of priorities) {
@@ -98,30 +95,27 @@ describe('ScheduleModel', () => {
       await ScheduleModel.create({
         ...scheduleCreateData,
         title: 'Schedule 1',
-        date: new Date('2024-01-01'),
-        startTime: new Date('2024-01-01T09:00:00Z'),
-        status: Status.planned,
-        priority: Priority.high,
+        startDate: new Date('2024-01-01T09:00:00Z'),
+        status: Status.PENDING,
+        priority: Priority.HIGH,
         projectId: 'project-1'
       });
 
       await ScheduleModel.create({
         ...scheduleCreateData,
         title: 'Schedule 2',
-        date: new Date('2024-01-02'),
-        startTime: new Date('2024-01-02T10:00:00Z'),
-        status: Status.completed,
-        priority: Priority.low,
+        startDate: new Date('2024-01-02T10:00:00Z'),
+        status: Status.COMPLETED,
+        priority: Priority.LOW,
         projectId: 'project-2'
       });
 
       await ScheduleModel.create({
         ...scheduleCreateData,
         title: 'Schedule 3',
-        date: new Date('2024-01-01'),
-        startTime: new Date('2024-01-01T14:00:00Z'),
-        status: Status.in_progress,
-        priority: Priority.medium,
+        startDate: new Date('2024-01-01T14:00:00Z'),
+        status: Status.IN_PROGRESS,
+        priority: Priority.MEDIUM,
         userId: 'other-user-id'
       });
     });
@@ -132,13 +126,15 @@ describe('ScheduleModel', () => {
       expect(schedules).toHaveLength(3);
       
       // 날짜 순으로 정렬되어 있는지 확인
-      expect(schedules[0].date.getTime()).toBeLessThanOrEqual(schedules[1].date.getTime());
-      expect(schedules[1].date.getTime()).toBeLessThanOrEqual(schedules[2].date.getTime());
+      expect(schedules[0].startDate.getTime()).toBeLessThanOrEqual(schedules[1].startDate.getTime());
+      expect(schedules[1].startDate.getTime()).toBeLessThanOrEqual(schedules[2].startDate.getTime());
       
       // 같은 날짜인 경우 시간 순으로 정렬되어 있는지 확인
-      const sameDateSchedules = schedules.filter(s => s.date.getTime() === new Date('2024-01-01').getTime());
+      const sameDateSchedules = schedules.filter(s => 
+        s.startDate.toDateString() === new Date('2024-01-01').toDateString()
+      );
       if (sameDateSchedules.length > 1) {
-        expect(sameDateSchedules[0].startTime!.getTime()).toBeLessThanOrEqual(sameDateSchedules[1].startTime!.getTime());
+        expect(sameDateSchedules[0].startDate.getTime()).toBeLessThanOrEqual(sameDateSchedules[1].startDate.getTime());
       }
     });
 
@@ -153,30 +149,30 @@ describe('ScheduleModel', () => {
 
     it('특정 날짜의 일정만 반환해야 한다', async () => {
       const targetDate = new Date('2024-01-01');
-      const schedules = await ScheduleModel.findAll({ date: targetDate });
+      const schedules = await ScheduleModel.findAll({ startDate: targetDate });
 
       expect(schedules).toHaveLength(2);
       schedules.forEach(schedule => {
-        expect(schedule.date.getTime()).toBe(targetDate.getTime());
+        expect(schedule.startDate.toDateString()).toBe(targetDate.toDateString());
       });
     });
 
     it('상태로 일정을 필터링해야 한다', async () => {
-      const schedules = await ScheduleModel.findAll({ status: Status.planned });
+      const schedules = await ScheduleModel.findAll({ status: Status.PENDING });
 
       expect(schedules).toHaveLength(1);
-      expect(schedules[0].status).toBe(Status.planned);
+      expect(schedules[0].status).toBe(Status.PENDING);
     });
 
     it('우선순위로 일정을 필터링해야 한다', async () => {
-      const schedules = await ScheduleModel.findAll({ priority: Priority.high });
+      const schedules = await ScheduleModel.findAll({ priority: Priority.HIGH });
 
       expect(schedules).toHaveLength(1);
-      expect(schedules[0].priority).toBe(Priority.high);
+      expect(schedules[0].priority).toBe(Priority.HIGH);
     });
 
     it('빈 배열을 반환해야 한다 (조건에 맞는 일정이 없는 경우)', async () => {
-      const schedules = await ScheduleModel.findAll({ priority: Priority.medium, status: Status.completed });
+      const schedules = await ScheduleModel.findAll({ priority: Priority.MEDIUM, status: Status.COMPLETED });
       expect(schedules).toHaveLength(0);
     });
   });
@@ -190,9 +186,8 @@ describe('ScheduleModel', () => {
       expect(foundSchedule!.id).toBe(createdSchedule.id);
       expect(foundSchedule!.title).toBe(createdSchedule.title);
       expect(foundSchedule!.description).toBe(createdSchedule.description);
-      expect(foundSchedule!.date.getTime()).toBe(createdSchedule.date.getTime());
-      expect(foundSchedule!.startTime?.getTime()).toBe(createdSchedule.startTime?.getTime());
-      expect(foundSchedule!.endTime?.getTime()).toBe(createdSchedule.endTime?.getTime());
+      expect(foundSchedule!.startDate?.getTime()).toBe(createdSchedule.startDate?.getTime());
+      expect(foundSchedule!.endDate?.getTime()).toBe(createdSchedule.endDate?.getTime());
       expect(foundSchedule!.status).toBe(createdSchedule.status);
       expect(foundSchedule!.priority).toBe(createdSchedule.priority);
     });
@@ -210,10 +205,10 @@ describe('ScheduleModel', () => {
       const updateData: ScheduleUpdateInput = {
         title: 'Updated Schedule',
         description: 'Updated Description',
-        startTime: new Date('2024-01-01T10:00:00Z'),
-        endTime: new Date('2024-01-01T18:00:00Z'),
-        status: Status.in_progress,
-        priority: Priority.high
+        startDate: new Date('2024-01-01T10:00:00Z'),
+        endDate: new Date('2024-01-01T18:00:00Z'),
+        status: Status.IN_PROGRESS,
+        priority: Priority.HIGH
       };
 
       const updatedSchedule = await ScheduleModel.update(createdSchedule.id, updateData);
@@ -222,8 +217,8 @@ describe('ScheduleModel', () => {
       expect(updatedSchedule!.id).toBe(createdSchedule.id);
       expect(updatedSchedule!.title).toBe(updateData.title);
       expect(updatedSchedule!.description).toBe(updateData.description);
-      expect(updatedSchedule!.startTime?.getTime()).toBe(updateData.startTime?.getTime());
-      expect(updatedSchedule!.endTime?.getTime()).toBe(updateData.endTime?.getTime());
+      expect(updatedSchedule!.startDate?.getTime()).toBe(updateData.startDate?.getTime());
+      expect(updatedSchedule!.endDate?.getTime()).toBe(updateData.endDate?.getTime());
       expect(updatedSchedule!.status).toBe(updateData.status);
       expect(updatedSchedule!.priority).toBe(updateData.priority);
     });
