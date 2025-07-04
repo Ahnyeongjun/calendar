@@ -135,7 +135,7 @@ export const validScheduleData = {
   endDate: new Date('2024-01-01T17:00:00Z'),
   status: Status.PENDING,
   priority: Priority.MEDIUM,
-  projectId: 'project-id',
+  projectId: 'mock-project-id', // 모킹용 프로젝트 ID
   userId: 'user-id'
 };
 
@@ -147,7 +147,7 @@ export const invalidScheduleData = {
     endDate: new Date('2024-01-01T17:00:00Z'),
     status: Status.PENDING,
     priority: Priority.MEDIUM,
-    projectId: 'project-id',
+    projectId: 'mock-project-id', // 모킹된 프로젝트 ID
     userId: 'user-id'
   },
   longTitle: {

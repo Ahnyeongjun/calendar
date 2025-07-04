@@ -34,7 +34,7 @@ module.exports = {
   },
 
   // 모듈 경로 설정
-  moduleNameMapping: {
+  moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
     '^@tests/(.*)$': '<rootDir>/tests/$1'
   },

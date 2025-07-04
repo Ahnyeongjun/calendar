@@ -23,7 +23,7 @@ describe('ProjectModel', () => {
 
   describe('create', () => {
     it('새 프로젝트를 성공적으로 생성해야 한다', async () => {
-      const project = await ProjectModel.create(validProjectData);
+      const project = await ProjectModel.create(validProjectData as ProjectCreateInput);
 
       expect(project).toBeDefined();
       expect(project.id).toBeDefined();
@@ -52,18 +52,18 @@ describe('ProjectModel', () => {
     });
 
     it('중복된 프로젝트명으로 생성 시 에러를 발생시켜야 한다', async () => {
-      await ProjectModel.create(validProjectData);
+      await ProjectModel.create(validProjectData as ProjectCreateInput);
 
-      await expect(ProjectModel.create(validProjectData)).rejects.toThrow();
+      await expect(ProjectModel.create(validProjectData as ProjectCreateInput)).rejects.toThrow();
     });
   });
 
   describe('findAll', () => {
     it('모든 프로젝트를 이름 순으로 반환해야 한다', async () => {
       // 여러 프로젝트 생성 (알파벳 역순으로)
-      const projectZ = await ProjectModel.create({ ...validProjectData, name: 'Z Project' });
-      const projectA = await ProjectModel.create({ ...validProjectData, name: 'A Project', userId: 'user-2' });
-      const projectM = await ProjectModel.create({ ...validProjectData, name: 'M Project', userId: 'user-3' });
+      const projectZ = await ProjectModel.create({ ...validProjectData, name: 'Z Project' } as ProjectCreateInput);
+      const projectA = await ProjectModel.create({ ...validProjectData, name: 'A Project', userId: 'user-2' } as ProjectCreateInput);
+      const projectM = await ProjectModel.create({ ...validProjectData, name: 'M Project', userId: 'user-3' } as ProjectCreateInput);
 
       const projects = await ProjectModel.findAll();
 
@@ -81,7 +81,7 @@ describe('ProjectModel', () => {
 
   describe('findById', () => {
     it('존재하는 프로젝트 ID로 조회 시 프로젝트 정보를 반환해야 한다', async () => {
-      const createdProject = await ProjectModel.create(validProjectData);
+      const createdProject = await ProjectModel.create(validProjectData as ProjectCreateInput);
       const foundProject = await ProjectModel.findById(createdProject.id);
 
       expect(foundProject).toBeDefined();
@@ -100,7 +100,7 @@ describe('ProjectModel', () => {
 
   describe('findByName', () => {
     it('존재하는 프로젝트명으로 조회 시 프로젝트 정보를 반환해야 한다', async () => {
-      await ProjectModel.create(validProjectData);
+      await ProjectModel.create(validProjectData as ProjectCreateInput);
       const foundProject = await ProjectModel.findByName(validProjectData.name);
 
       expect(foundProject).toBeDefined();
@@ -113,7 +113,7 @@ describe('ProjectModel', () => {
     });
 
     it('대소문자를 구분하여 조회해야 한다', async () => {
-      await ProjectModel.create(validProjectData);
+      await ProjectModel.create(validProjectData as ProjectCreateInput);
       const foundProject = await ProjectModel.findByName(validProjectData.name.toUpperCase());
 
       expect(foundProject).toBeNull();
@@ -122,7 +122,7 @@ describe('ProjectModel', () => {
 
   describe('findByNameCaseInsensitive', () => {
     beforeEach(async () => {
-      await ProjectModel.create({ ...validProjectData, name: 'Test Project' });
+      await ProjectModel.create({ ...validProjectData, name: 'Test Project' } as ProjectCreateInput);
     });
 
     it('대소문자 구분 없이 프로젝트를 찾아야 한다', async () => {
@@ -163,7 +163,7 @@ describe('ProjectModel', () => {
 
   describe('update', () => {
     it('프로젝트 정보를 성공적으로 업데이트해야 한다', async () => {
-      const createdProject = await ProjectModel.create(validProjectData);
+      const createdProject = await ProjectModel.create(validProjectData as ProjectCreateInput);
       
       const updateData: ProjectUpdateInput = {
         name: 'Updated Project',
@@ -182,7 +182,7 @@ describe('ProjectModel', () => {
     });
 
     it('부분 업데이트를 성공적으로 수행해야 한다', async () => {
-      const createdProject = await ProjectModel.create(validProjectData);
+      const createdProject = await ProjectModel.create(validProjectData as ProjectCreateInput);
       
       const partialUpdateData: ProjectUpdateInput = {
         name: 'Partially Updated Project'
@@ -206,7 +206,7 @@ describe('ProjectModel', () => {
     });
 
     it('빈 업데이트 데이터로도 작동해야 한다', async () => {
-      const createdProject = await ProjectModel.create(validProjectData);
+      const createdProject = await ProjectModel.create(validProjectData as ProjectCreateInput);
       
       const updatedProject = await ProjectModel.update(createdProject.id, {});
 
@@ -219,7 +219,7 @@ describe('ProjectModel', () => {
 
   describe('delete', () => {
     it('프로젝트를 성공적으로 삭제해야 한다', async () => {
-      const createdProject = await ProjectModel.create(validProjectData);
+      const createdProject = await ProjectModel.create(validProjectData as ProjectCreateInput);
 
       const result = await ProjectModel.delete(createdProject.id);
       expect(result).toBe(true);
@@ -235,7 +235,7 @@ describe('ProjectModel', () => {
     });
 
     it('이미 삭제된 프로젝트를 다시 삭제하려고 하면 false를 반환해야 한다', async () => {
-      const createdProject = await ProjectModel.create(validProjectData);
+      const createdProject = await ProjectModel.create(validProjectData as ProjectCreateInput);
 
       // 첫 번째 삭제
       const firstDeleteResult = await ProjectModel.delete(createdProject.id);
@@ -257,7 +257,7 @@ describe('ProjectModel', () => {
           ...validProjectData,
           name: `Project ${i.toString().padStart(2, '0')}`,
           userId: `user-${i}`
-        });
+        } as ProjectCreateInput);
         projects.push(project);
       }
 
@@ -280,7 +280,7 @@ describe('ProjectModel', () => {
 
     it('복합 작업이 정상 작동해야 한다', async () => {
       // 프로젝트 생성
-      const project = await ProjectModel.create(validProjectData);
+      const project = await ProjectModel.create(validProjectData as ProjectCreateInput);
 
       // 이름으로 검색
       const foundByName = await ProjectModel.findByName(project.name);
@@ -320,8 +320,8 @@ describe('ProjectModel', () => {
     it('동시 접근 상황을 시뮬레이션해야 한다', async () => {
       // 동일한 프로젝트명으로 동시에 생성 시도
       const promises = [
-        ProjectModel.create({ ...validProjectData, name: 'Concurrent Project', userId: 'user-1' }),
-        ProjectModel.create({ ...validProjectData, name: 'Concurrent Project', userId: 'user-2' })
+        ProjectModel.create({ ...validProjectData, name: 'Concurrent Project', userId: 'user-1' } as ProjectCreateInput),
+        ProjectModel.create({ ...validProjectData, name: 'Concurrent Project', userId: 'user-2' } as ProjectCreateInput)
       ];
 
       // 하나만 성공하고 하나는 실패해야 함
@@ -334,8 +334,8 @@ describe('ProjectModel', () => {
     });
 
     it('트랜잭션처럼 작동하는 업데이트가 정상 작동해야 한다', async () => {
-      const project1 = await ProjectModel.create({ ...validProjectData, name: 'Project 1' });
-      const project2 = await ProjectModel.create({ ...validProjectData, name: 'Project 2', userId: 'user-2' });
+      const project1 = await ProjectModel.create({ ...validProjectData, name: 'Project 1' } as ProjectCreateInput);
+      const project2 = await ProjectModel.create({ ...validProjectData, name: 'Project 2', userId: 'user-2' } as ProjectCreateInput);
 
       // Project 1을 업데이트
       const updatedProject1 = await ProjectModel.update(project1.id, {
@@ -361,7 +361,7 @@ describe('ProjectModel', () => {
       const originalCreate = prisma.project.create;
       prisma.project.create = jest.fn().mockRejectedValue(new Error('Database connection failed'));
 
-      await expect(ProjectModel.create(validProjectData)).rejects.toThrow('Database connection failed');
+      await expect(ProjectModel.create(validProjectData as ProjectCreateInput)).rejects.toThrow('Database connection failed');
 
       // 원래 함수 복원
       prisma.project.create = originalCreate;
@@ -377,7 +377,7 @@ describe('ProjectModel', () => {
     });
 
     it('update에서 데이터베이스 오류를 적절히 처리해야 한다', async () => {
-      const project = await ProjectModel.create(validProjectData);
+      const project = await ProjectModel.create(validProjectData as ProjectCreateInput);
 
       const originalUpdate = prisma.project.update;
       prisma.project.update = jest.fn().mockRejectedValue(new Error('Update failed'));
@@ -388,7 +388,7 @@ describe('ProjectModel', () => {
     });
 
     it('delete에서 데이터베이스 오류를 적절히 처리해야 한다', async () => {
-      const project = await ProjectModel.create(validProjectData);
+      const project = await ProjectModel.create(validProjectData as ProjectCreateInput);
 
       const originalDelete = prisma.project.delete;
       prisma.project.delete = jest.fn().mockRejectedValue(new Error('Delete failed'));
@@ -405,7 +405,7 @@ describe('ProjectModel', () => {
       const projectData: ProjectCreateInput = {
         ...validProjectData,
         name: longName
-      };
+      } as ProjectCreateInput;
 
       const project = await ProjectModel.create(projectData);
       expect(project.name).toBe(longName);
@@ -416,7 +416,7 @@ describe('ProjectModel', () => {
       const projectData: ProjectCreateInput = {
         ...validProjectData,
         name: specialCharName
-      };
+      } as ProjectCreateInput;
 
       const project = await ProjectModel.create(projectData);
       expect(project.name).toBe(specialCharName);
@@ -429,7 +429,7 @@ describe('ProjectModel', () => {
       const projectData: ProjectCreateInput = {
         ...validProjectData,
         description: null
-      };
+      } as ProjectCreateInput;
 
       const project = await ProjectModel.create(projectData);
       expect(project.description).toBeNull();

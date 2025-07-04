@@ -6,9 +6,11 @@ import { validUserData, validLoginData, invalidUserData, invalidLoginData } from
 import authRoutes from '../../src/routes/authRoutes';
 import { Priority, Status } from '@prisma/client';
 
-jest.mock('../../src/config/prisma', () => require('../__mocks__/prismaMocks'));
+// Integration Test이므로 실제 데이터베이스 사용 - 모킹 제거
+// jest.mock('../../src/config/prisma', () => require('../__mocks__/prismaMocks'));
 jest.mock('../../src/services/logger', () => require('../__mocks__/loggerMocks'));
-jest.mock('../../src/middleware/auth', () => require('../__mocks__/authMocks'));
+// Auth middleware는 실제 로직 사용
+// jest.mock('../../src/middleware/auth', () => require('../__mocks__/authMocks'));
 
 describe('Auth Integration Tests', () => {
   let app: express.Application;
@@ -133,7 +135,7 @@ describe('Auth Integration Tests', () => {
 
       // 토큰이 유효한지 확인
       const jwt = require('jsonwebtoken');
-      const decoded = jwt.verify(response.body.data.token, 'test-secret');
+      const decoded = jwt.verify(response.body.data.token, process.env.JWT_SECRET!);
       expect(decoded.username).toBe(validLoginData.username);
     });
 

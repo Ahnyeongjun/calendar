@@ -36,15 +36,9 @@ export class TestServer {
       });
     });
     
-    // 전역 에러 핸들러
-    this.app.use((error: any, req: any, res: any, next: any) => {
-      return res.status(error.statusCode || 500).json({
-        success: false,
-        error: error.message || 'Internal server error',
-        timestamp: new Date().toISOString(),
-        requestId: req.requestId || 'test-request-id'
-      });
-    });
+    // 실제 에러 핸들러 사용
+    const { errorHandler } = require('../../src/middleware/errorHandler');
+    this.app.use(errorHandler);
   }
 
   public getApp(): express.Application {

@@ -7,11 +7,28 @@ import { validUserData, validLoginData, invalidLoginData } from '../fixtures/dat
 import { ConflictError, NotFoundError } from '../../src/middleware/errorHandler';
 import { UserContext } from '../../src/types/common';
 
+// Mock 설정들을 파일 상단에 배치
 jest.mock('../../src/models/User', () => require('../__mocks__/userModelMocks'));
 jest.mock('../../src/services/validationService', () => require('../__mocks__/validationServiceMocks'));
 jest.mock('../../src/services/logger', () => require('../__mocks__/loggerMocks'));
-jest.mock('../../src/middleware/errorHandler', () => require('../__mocks__/errorHandlerMocks'));
 jest.mock('../../src/middleware/auth', () => require('../__mocks__/authMocks'));
+
+// errorHandler mock은 asyncHandler를 단순한 함수로 만들어서 await 처리가 가능하게 함
+jest.mock('../../src/middleware/errorHandler', () => {
+  const actual = jest.requireActual('../../src/middleware/errorHandler');
+  return {
+    ...actual,
+    asyncHandler: (fn: Function) => {
+      return async (req: any, res: any, next: any) => {
+        try {
+          await fn(req, res, next);
+        } catch (error) {
+          next(error);
+        }
+      };
+    }
+  };
+});
 
 
 const MockUserModel = UserModel as jest.Mocked<typeof UserModel>;

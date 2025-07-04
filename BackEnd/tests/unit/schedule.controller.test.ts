@@ -1,3 +1,4 @@
+/// <reference types="jest" />
 import { Request, Response, NextFunction } from 'express';
 import ScheduleController from '../../src/controllers/scheduleController';
 import ScheduleModel from '../../src/models/Schedule';
@@ -6,6 +7,15 @@ import ScheduleTransformer from '../../src/services/dataTransformer';
 import { UnauthorizedError, NotFoundError, ForbiddenError, ValidationError } from '../../src/middleware/errorHandler';
 import { Status, Priority } from '@prisma/client';
 import { validScheduleData } from '../fixtures/data';
+
+// asyncHandler 모킹 - 에러를 그대로 던지도록
+jest.mock('../../src/middleware/errorHandler', () => {
+  const actual = jest.requireActual('../../src/middleware/errorHandler');
+  return {
+    ...actual,
+    asyncHandler: (fn: Function) => fn, // asyncHandler를 bypass
+  };
+});
 
 // Mocks
 jest.mock('../../src/models/Schedule');
@@ -55,12 +65,11 @@ describe('ScheduleController', () => {
     id: 'schedule-id',
     title: 'Test Schedule',
     description: 'Test Description',
-    date: new Date('2024-01-01'),
     startDate: new Date('2024-01-01T09:00:00Z'),
     endDate: new Date('2024-01-01T17:00:00Z'),
     status: Status.IN_PROGRESS,
     priority: Priority.MEDIUM,
-    projectId: 'project-id',
+    projectId: 'mock-project-id', // 모킹된 프로젝트 ID
     userId: 'user-id',
     createdAt: new Date(),
     updatedAt: new Date()
@@ -103,10 +112,9 @@ describe('ScheduleController', () => {
 
     it('필터 조건과 함께 일정을 조회해야 한다', async () => {
       req.query = {
-        date: '2024-01-01',
         status: Status.IN_PROGRESS,
         priority: Priority.HIGH,
-        projectId: 'project-id'
+        projectId: 'mock-project-id' // 모킹된 프로젝트 ID
       };
 
       const mockSchedules = [mockSchedule];
@@ -116,10 +124,9 @@ describe('ScheduleController', () => {
 
       expect(MockScheduleModel.findAll).toHaveBeenCalledWith({
         userId: 'user-id',
-        date: new Date('2024-01-01'),
         status: Status.IN_PROGRESS,
         priority: Priority.HIGH,
-        projectId: 'project-id'
+        projectId: 'mock-project-id' // 모킹된 프로젝트 ID
       });
     });
 
@@ -209,14 +216,11 @@ describe('ScheduleController', () => {
       description: 'Test Description',
       startDate: new Date('2024-01-01T10:00:00Z'),
       endDate: new Date('2024-01-01T17:00:00Z'),
-      projectId: 'project-id',
+      projectId: 'mock-project-id', // 모킹된 프로젝트 ID
       userId: 'user-id'
     };
 
     it('유효한 데이터로 일정을 성공적으로 생성해야 한다', async () => {
-      const chainedJson = jest.fn();
-      statusSpy.mockReturnValue({ json: chainedJson });
-
       MockValidationService.validateCreateScheduleData.mockReturnValue(scheduleCreateData);
       MockScheduleTransformer.apiToCreateData.mockReturnValue({
         title: 'Test Schedule',
@@ -225,7 +229,7 @@ describe('ScheduleController', () => {
         endDate: new Date('2024-01-01T17:00:00Z'),
         status: Status.IN_PROGRESS,
         priority: Priority.MEDIUM,
-        projectId: 'project-id',
+        projectId: 'mock-project-id', // 모킹된 프로젝트 ID
         userId: 'user-id'
       });
       MockScheduleTransformer.validateTimes.mockReturnValue(undefined);
@@ -241,17 +245,16 @@ describe('ScheduleController', () => {
       expect(MockScheduleModel.create).toHaveBeenCalledWith({
         title: 'Test Schedule',
         description: 'Test Description',
-        date: new Date('2024-01-01'),
         startDate: new Date('2024-01-01T09:00:00Z'),
         endDate: new Date('2024-01-01T17:00:00Z'),
         status: Status.IN_PROGRESS,
         priority: Priority.MEDIUM,
-        projectId: 'project-id',
+        projectId: 'mock-project-id', // 모킹된 프로젝트 ID
         userId: 'user-id'
       });
 
       expect(statusSpy).toHaveBeenCalledWith(201);
-      expect(chainedJson).toHaveBeenCalledWith({
+      expect(jsonSpy).toHaveBeenCalledWith({
         success: true,
         schedule: mockSchedule
       });
@@ -293,7 +296,7 @@ describe('ScheduleController', () => {
         endDate: new Date('2024-01-01T17:00:00Z'),
         status: Status.IN_PROGRESS,
         priority: Priority.MEDIUM,
-        projectId: 'project-id',
+        projectId: 'mock-project-id', // 모킹된 프로젝트 ID
         userId: 'user-id'
       });
       MockScheduleTransformer.validateTimes.mockImplementation(() => {
@@ -522,7 +525,7 @@ describe('ScheduleController', () => {
         endDate: new Date('2024-01-01T17:00:00Z'),
         status: Status.IN_PROGRESS,
         priority: Priority.MEDIUM,
-        projectId: 'project-id',
+        projectId: 'mock-project-id', // 모킹된 프로젝트 ID
         userId: 'user-id'
       });
       MockScheduleTransformer.validateTimes.mockReturnValue(undefined);
@@ -566,12 +569,11 @@ describe('ScheduleController', () => {
 
     it('모든 쿼리 파라미터를 포함한 필터를 생성해야 한다', async () => {
       req.query = {
-        date: '2024-01-01',
         startDate: '2024-01-01',
         endDate: '2024-01-31',
         status: Status.COMPLETED,
         priority: Priority.LOW,
-        projectId: 'project-id'
+        projectId: 'mock-project-id' // 모킹된 프로젝트 ID
       };
 
       MockScheduleModel.findAll.mockResolvedValue([]);
@@ -580,12 +582,11 @@ describe('ScheduleController', () => {
 
       expect(MockScheduleModel.findAll).toHaveBeenCalledWith({
         userId: 'user-id',
-        date: new Date('2024-01-01'),
         startDate: new Date('2024-01-01'),
         endDate: new Date('2024-01-31'),
         status: Status.COMPLETED,
         priority: Priority.LOW,
-        projectId: 'project-id'
+        projectId: 'mock-project-id' // 모킹된 프로젝트 ID
       });
     });
   });

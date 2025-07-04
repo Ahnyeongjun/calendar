@@ -23,8 +23,8 @@ describe('Project API Integration Tests', () => {
       password: 'TestPassword123!',
       name: 'Test User'
     });
-    testUserId = testUser.id;
-    authToken = generateTestToken(testUser);
+    testUserId = testUser.id; // 추가
+    authToken = generateTestToken(testUser.id, testUser.username, testUser.name);
 
     // 다른 사용자 생성
     const otherUser = await createTestUser({
@@ -32,8 +32,8 @@ describe('Project API Integration Tests', () => {
       password: 'OtherPassword123!',
       name: 'Other User'
     });
-    otherUserId = otherUser.id;
-    otherAuthToken = generateTestToken(otherUser);
+    otherUserId = otherUser.id; // 추가
+    otherAuthToken = generateTestToken(otherUser.id, otherUser.username, otherUser.name);
   });
 
   afterAll(async () => {

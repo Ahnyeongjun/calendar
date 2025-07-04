@@ -19,18 +19,45 @@ class ScheduleModel {
     try {
       const where: any = {};
 
-      // 날짜 범위 필터링
+      // 날짜 범위 필터링 (더 간단하고 직관적인 로직)
       if (filters.startDate && filters.endDate) {
-        where.startDate = {
-          gte: filters.startDate,
-          lte: filters.endDate
-        };
+        // 시작일과 종료일이 모두 제공된 경우: 날짜 범위에 있는 모든 일정
+        const startOfDay = new Date(filters.startDate);
+        startOfDay.setHours(0, 0, 0, 0);
+        const endOfDay = new Date(filters.endDate);
+        endOfDay.setHours(23, 59, 59, 999);
+        
+        where.OR = [
+          {
+            // 시작일이 범위 내에 있는 일정
+            startDate: {
+              gte: startOfDay,
+              lte: endOfDay
+            }
+          },
+          {
+            // 종료일이 범위 내에 있는 일정
+            endDate: {
+              gte: startOfDay,
+              lte: endOfDay
+            }
+          },
+          {
+            // 범위를 완전히 포함하는 일정
+            AND: [
+              { startDate: { lte: startOfDay } },
+              { endDate: { gte: endOfDay } }
+            ]
+          }
+        ];
       } else if (filters.startDate) {
-        where.startDate = {
+        // 시작일만 제공된 경우: 해당 날짜 이후에 끝나는 일정
+        where.endDate = {
           gte: filters.startDate
         };
       } else if (filters.endDate) {
-        where.endDate = {
+        // 종료일만 제공된 경우: 해당 날짜 이전에 시작하는 일정
+        where.startDate = {
           lte: filters.endDate
         };
       }

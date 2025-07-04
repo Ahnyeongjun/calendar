@@ -156,6 +156,51 @@ export const errorHandler = (
 ): void => {
   const logContext = logger.createContext('ERROR_HANDLER', req.requestId, req.user?.id);
 
+  // Prisma 에러 처리
+  if ((error as any).code === 'P2003') {
+    // 외래 키 제약 조건 위반
+    const validationError = new ValidationError('유효하지 않은 참조 ID입니다.');
+    const response: ApiResponse = {
+      success: false,
+      error: validationError.message,
+      timestamp: new Date().toISOString(),
+      requestId: req.requestId
+    };
+
+    logContext.warn('Foreign Key Constraint Violation', {
+      message: error.message,
+      code: (error as any).code,
+      meta: (error as any).meta,
+      url: req.originalUrl,
+      method: req.method
+    });
+
+    res.status(400).json(response);
+    return;
+  }
+
+  if ((error as any).code === 'P2000') {
+    // 데이터 길이 초과
+    const validationError = new ValidationError('입력 데이터가 너무 깁니다.');
+    const response: ApiResponse = {
+      success: false,
+      error: validationError.message,
+      timestamp: new Date().toISOString(),
+      requestId: req.requestId
+    };
+
+    logContext.warn('Data Length Exceeded', {
+      message: error.message,
+      code: (error as any).code,
+      meta: (error as any).meta,
+      url: req.originalUrl,
+      method: req.method
+    });
+
+    res.status(400).json(response);
+    return;
+  }
+
   // AppError 인스턴스인지 확인
   if (error instanceof AppError) {
     const response: ApiResponse = {

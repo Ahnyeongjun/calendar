@@ -24,12 +24,8 @@ describe('Schedule Integration Tests', () => {
     app.use('/api/schedules', authMiddleware, scheduleRoutes);
 
     // 에러 핸들러
-    app.use((error: any, req: any, res: any, next: any) => {
-      res.status(error.statusCode || 500).json({
-        success: false,
-        error: error.message || 'Internal server error'
-      });
-    });
+    const { errorHandler } = require('../../src/middleware/errorHandler');
+    app.use(errorHandler);
 
     // 데이터베이스 설정
     await TestDatabase.setup();

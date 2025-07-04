@@ -3,29 +3,66 @@ import { TestDatabase } from '../helpers/database';
 import { validScheduleData } from '../fixtures/data';
 import { Status, Priority, Schedule } from '@prisma/client';
 
-jest.mock('../../src/config/prisma', () => require('../__mocks__/prismaMocks'));
+// 실제 데이터베이스를 사용하는 모델 테스트이므로 모킹 제거
+// jest.mock('../../src/config/prisma', () => require('../__mocks__/prismaMocks'));
 jest.mock('../../src/services/logger', () => require('../__mocks__/loggerMocks'));
 
 describe('ScheduleModel', () => {
-  let prisma: any;
+  let testUserId: string;
+  let testProjectId: string;
+  let testProject2Id: string;
 
-  const scheduleCreateData: ScheduleCreateInput = {
-    title: 'Test Schedule',
-    description: 'Test Description',
-    startDate: new Date('2024-01-01T09:00:00Z'),
-    endDate: new Date('2024-01-01T17:00:00Z'),
-    status: Status.PENDING,
-    priority: Priority.MEDIUM,
-    projectId: 'project-id',
-    userId: 'user-id'
-  };
+  // scheduleCreateData를 beforeAll 후에 생성하도록 변경
+  let scheduleCreateData: ScheduleCreateInput;
 
   beforeAll(async () => {
-    prisma = await TestDatabase.setup();
+    await TestDatabase.setup();
+    
+    // 테스트용 사용자 생성
+    const testUser = await TestDatabase.createTestUser({
+      id: 'test-user-id',
+      username: 'testuser',
+      password: 'hashedpassword',
+      name: 'Test User'
+    });
+    testUserId = testUser.id;
+
+    // 테스트용 프로젝트들 생성
+    const testProject = await TestDatabase.createTestProject({
+      id: 'test-project-id',
+      name: 'Test Project',
+      description: 'Test Project Description',
+      color: '#FF0000',
+      userId: testUserId
+    });
+    testProjectId = testProject.id;
+
+    const testProject2 = await TestDatabase.createTestProject({
+      id: 'test-project-2',
+      name: 'Test Project 2',
+      description: 'Test Project 2 Description', 
+      color: '#00FF00',
+      userId: testUserId
+    });
+    testProject2Id = testProject2.id;
+
+    // scheduleCreateData 초기화
+    scheduleCreateData = {
+      title: 'Test Schedule',
+      description: 'Test Description',
+      startDate: new Date('2024-01-01T09:00:00Z'),
+      endDate: new Date('2024-01-01T17:00:00Z'),
+      status: Status.PENDING,
+      priority: Priority.MEDIUM,
+      projectId: testProjectId,
+      userId: testUserId
+    };
   });
 
   beforeEach(async () => {
-    await TestDatabase.cleanup();
+    // 스케줄만 정리 (사용자와 프로젝트는 유지)
+    const prisma = TestDatabase.getPrisma();
+    await prisma.schedule.deleteMany();
   });
 
   afterAll(async () => {
@@ -58,8 +95,8 @@ describe('ScheduleModel', () => {
         endDate: new Date('2024-01-01T17:00:00Z'),
         status: Status.PENDING,
         priority: Priority.LOW,
-        projectId: 'project-id',
-        userId: 'user-id'
+        projectId: testProjectId,
+        userId: testUserId
       };
 
       const schedule = await ScheduleModel.create(minimalScheduleData);
@@ -98,7 +135,7 @@ describe('ScheduleModel', () => {
         startDate: new Date('2024-01-01T09:00:00Z'),
         status: Status.PENDING,
         priority: Priority.HIGH,
-        projectId: 'project-1'
+        projectId: testProjectId
       });
 
       await ScheduleModel.create({
@@ -107,7 +144,7 @@ describe('ScheduleModel', () => {
         startDate: new Date('2024-01-02T10:00:00Z'),
         status: Status.COMPLETED,
         priority: Priority.LOW,
-        projectId: 'project-2'
+        projectId: testProject2Id
       });
 
       await ScheduleModel.create({
@@ -116,7 +153,7 @@ describe('ScheduleModel', () => {
         startDate: new Date('2024-01-01T14:00:00Z'),
         status: Status.IN_PROGRESS,
         priority: Priority.MEDIUM,
-        userId: 'other-user-id'
+        userId: testUserId // 다른 사용자 대신 같은 사용자 사용
       });
     });
 
@@ -139,11 +176,11 @@ describe('ScheduleModel', () => {
     });
 
     it('userId 필터로 특정 사용자의 일정만 반환해야 한다', async () => {
-      const schedules = await ScheduleModel.findAll({ userId: 'user-id' });
+      const schedules = await ScheduleModel.findAll({ userId: testUserId });
 
-      expect(schedules).toHaveLength(2);
+      expect(schedules).toHaveLength(3); // 모두 같은 사용자이므로
       schedules.forEach(schedule => {
-        expect(schedule.userId).toBe('user-id');
+        expect(schedule.userId).toBe(testUserId);
       });
     });
 

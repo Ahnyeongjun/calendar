@@ -183,16 +183,16 @@ class ValidationService {
     createSchedule: Joi.object({
       title: Joi.string()
         .min(1)
-        .max(200)
+        .max(255) // 255자로 증가
         .required()
         .messages({
           'string.min': '제목은 최소 1자 이상이어야 합니다',
-          'string.max': '제목은 최대 200자까지 가능합니다',
+          'string.max': '제목은 최대 255자까지 가능합니다',
           'any.required': '제목은 필수입니다'
         }),
       description: Joi.string()
         .max(1000)
-        .allow('')
+        .allow('', null) // null 허용 추가
         .messages({
           'string.max': '설명은 최대 1000자까지 가능합니다'
         }),
@@ -219,14 +219,14 @@ class ValidationService {
     updateSchedule: Joi.object({
       title: Joi.string()
         .min(1)
-        .max(200)
+        .max(255) // 255자로 증가
         .messages({
           'string.min': '제목은 최소 1자 이상이어야 합니다',
-          'string.max': '제목은 최대 200자까지 가능합니다'
+          'string.max': '제목은 최대 255자까지 가능합니다'
         }),
       description: Joi.string()
         .max(1000)
-        .allow('')
+        .allow('', null) // null 허용 추가
         .messages({
           'string.max': '설명은 최대 1000자까지 가능합니다'
         }),

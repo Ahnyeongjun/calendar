@@ -37,7 +37,7 @@ model Project {
 
 model Schedule {
   id          String    @id @default(uuid())
-  title       String
+  title       String    @db.VarChar(255)
   description String?   @db.Text
   startDate   DateTime  @map("start_date")
   endDate     DateTime  @map("end_date")
